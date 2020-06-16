@@ -321,6 +321,44 @@
       </tags>
   </entry>
   <entry>
+    <title>Hive注释中文乱码</title>
+    <url>/2019/01/31/Hive%E6%B3%A8%E9%87%8A%E4%B8%AD%E6%96%87%E4%B9%B1%E7%A0%81/</url>
+    <content><![CDATA[<h4 id="建表语句"><a href="#建表语句" class="headerlink" title="建表语句"></a>建表语句</h4><figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">create</span> <span class="keyword">external</span> <span class="keyword">table</span> movie(</span><br><span class="line">userID <span class="built_in">int</span> <span class="keyword">comment</span> <span class="string">'用户ID'</span>,</span><br><span class="line">movieID <span class="built_in">int</span> <span class="keyword">comment</span> <span class="string">'电影ID'</span>,</span><br><span class="line">rating <span class="built_in">int</span> <span class="keyword">comment</span> <span class="string">'电影评分'</span>,</span><br><span class="line">timestamped <span class="built_in">bigint</span> <span class="keyword">comment</span> <span class="string">'评分时间戳'</span>,</span><br><span class="line">movieName <span class="keyword">string</span> <span class="keyword">comment</span> <span class="string">'电影名字'</span>, </span><br><span class="line">movieType <span class="keyword">string</span> <span class="keyword">comment</span> <span class="string">'电影类型'</span>, </span><br><span class="line">sex <span class="keyword">string</span> <span class="keyword">comment</span> <span class="string">'性别'</span>, </span><br><span class="line">age <span class="built_in">int</span> <span class="keyword">comment</span> <span class="string">'年龄'</span>, </span><br><span class="line">occupation <span class="keyword">string</span> <span class="keyword">comment</span> <span class="string">'职业'</span>, </span><br><span class="line">zipcode <span class="keyword">string</span> <span class="keyword">comment</span> <span class="string">'邮政编码'</span></span><br><span class="line">) <span class="keyword">comment</span> <span class="string">'影评三表合一'</span> </span><br><span class="line"><span class="keyword">row</span> <span class="keyword">format</span> <span class="keyword">delimited</span> <span class="keyword">fields</span> <span class="keyword">terminated</span> <span class="keyword">by</span> <span class="string">","</span></span><br><span class="line">location <span class="string">'/hive/movie'</span>;</span><br></pre></td></tr></table></figure>
+<p>这是因为在hive的元数据库中MySQL中的元数据出现乱码</p>
+<ul>
+<li><p>那么我们只需要把相应注释的地方的字符集由 latin1 改成 utf-8，就可以了。用到注释的就三个地方，表、分区、视图。如下修改分为两个步骤：</p>
+<h5 id="1、进入数据库-Metastore-中执行以下-5-条-SQL-语句"><a href="#1、进入数据库-Metastore-中执行以下-5-条-SQL-语句" class="headerlink" title="1、进入数据库 Metastore 中执行以下 5 条 SQL 语句"></a>1、进入数据库 Metastore 中执行以下 5 条 SQL 语句</h5></li>
+<li><p>（1）修改表字段注解和表注解</p>
+</li>
+</ul>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">alter</span> <span class="keyword">table</span> COLUMNS_V2 <span class="keyword">modify</span> <span class="keyword">column</span> <span class="keyword">COMMENT</span> <span class="built_in">varchar</span>(<span class="number">256</span>) <span class="built_in">character</span> <span class="keyword">set</span> utf8;</span><br><span class="line"><span class="keyword">alter</span> <span class="keyword">table</span> TABLE_PARAMS <span class="keyword">modify</span> <span class="keyword">column</span> PARAM_VALUE <span class="built_in">varchar</span>(<span class="number">4000</span>) <span class="built_in">character</span> <span class="keyword">set</span> utf8;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>（2）修改分区字段注解</li>
+</ul>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">alter</span> <span class="keyword">table</span> PARTITION_PARAMS <span class="keyword">modify</span> <span class="keyword">column</span> PARAM_VALUE <span class="built_in">varchar</span>(<span class="number">4000</span>) <span class="built_in">character</span> <span class="keyword">set</span> utf8 ;</span><br><span class="line"><span class="keyword">alter</span> <span class="keyword">table</span> PARTITION_KEYS <span class="keyword">modify</span> <span class="keyword">column</span> PKEY_COMMENT <span class="built_in">varchar</span>(<span class="number">4000</span>) <span class="built_in">character</span> <span class="keyword">set</span> utf8;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>（3）修改索引注解</li>
+</ul>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">alter</span> <span class="keyword">table</span> INDEX_PARAMS <span class="keyword">modify</span> <span class="keyword">column</span> PARAM_VALUE <span class="built_in">varchar</span>(<span class="number">4000</span>) <span class="built_in">character</span> <span class="keyword">set</span> utf8;</span><br></pre></td></tr></table></figure>
+<h4 id="2、修改-metastore-的连接-URL"><a href="#2、修改-metastore-的连接-URL" class="headerlink" title="2、修改 metastore 的连接 URL"></a>2、修改 metastore 的连接 URL</h4><p> 修改hive-site.xml配置文件</p>
+<p> CDH中修改路径</p>
+<p> hive-&gt;配置-&gt;类别-&gt;高级-&gt;hive-site.xml 的 Hive 复制高级配置代码段（安全阀）</p>
+<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">name</span>&gt;</span>javax.jdo.option.ConnectionURL<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">value</span>&gt;</span>jdbc:mysql://IP:3306/db_name?createDatabaseIfNotExist=true<span class="symbol">&amp;amp;</span>useUnicode=true&amp;characterEncoding=UTF-8<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">description</span>&gt;</span>JDBC connect string for a JDBC metastore<span class="tag">&lt;/<span class="name">description</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br></pre></td></tr></table></figure>
+<p>重启一下hive</p>
+<h5 id="查看表结构"><a href="#查看表结构" class="headerlink" title="查看表结构"></a>查看表结构</h5><figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">DESCRIBE</span>  movie</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight angelscript"><table><tr><td class="code"><pre><span class="line"></span><br><span class="line"><span class="number">1</span>	userID	<span class="built_in">int</span>	客户ID</span><br><span class="line"><span class="number">2</span>	movieID	<span class="built_in">int</span>	用户ID</span><br><span class="line"><span class="number">3</span>	rating	<span class="built_in">int</span>	电影评分</span><br><span class="line"><span class="number">4</span>	timestamped	bigint	评分时间戳</span><br><span class="line"><span class="number">5</span>	movieName	<span class="built_in">string</span>	电影名字</span><br><span class="line"><span class="number">6</span>	movieType	<span class="built_in">string</span>	电影类型</span><br><span class="line"><span class="number">7</span>	sex	<span class="built_in">string</span>	性别</span><br><span class="line"><span class="number">8</span>	age	<span class="built_in">int</span>	年龄</span><br><span class="line"><span class="number">9</span>	occupation	<span class="built_in">string</span>	职业</span><br><span class="line"><span class="number">10</span>	zipcode	<span class="built_in">string</span>	邮政编码</span><br></pre></td></tr></table></figure>
+]]></content>
+      <categories>
+        <category>hive</category>
+      </categories>
+      <tags>
+        <tag>hive 乱码</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>Hive UDF 两种API</title>
     <url>/2019/01/30/Hive%20UDF%20%E4%B8%A4%E7%A7%8DAPI/</url>
     <content><![CDATA[<h5 id="编写Apache-Hive用户自定义函数（UDF）有两个不同的接口"><a href="#编写Apache-Hive用户自定义函数（UDF）有两个不同的接口" class="headerlink" title="编写Apache Hive用户自定义函数（UDF）有两个不同的接口"></a>编写Apache Hive用户自定义函数（UDF）有两个不同的接口</h5><ul>
@@ -360,44 +398,6 @@
       </categories>
       <tags>
         <tag>UDF</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>Hive注释中文乱码</title>
-    <url>/2019/01/31/Hive%E6%B3%A8%E9%87%8A%E4%B8%AD%E6%96%87%E4%B9%B1%E7%A0%81/</url>
-    <content><![CDATA[<h4 id="建表语句"><a href="#建表语句" class="headerlink" title="建表语句"></a>建表语句</h4><figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">create</span> <span class="keyword">external</span> <span class="keyword">table</span> movie(</span><br><span class="line">userID <span class="built_in">int</span> <span class="keyword">comment</span> <span class="string">'用户ID'</span>,</span><br><span class="line">movieID <span class="built_in">int</span> <span class="keyword">comment</span> <span class="string">'电影ID'</span>,</span><br><span class="line">rating <span class="built_in">int</span> <span class="keyword">comment</span> <span class="string">'电影评分'</span>,</span><br><span class="line">timestamped <span class="built_in">bigint</span> <span class="keyword">comment</span> <span class="string">'评分时间戳'</span>,</span><br><span class="line">movieName <span class="keyword">string</span> <span class="keyword">comment</span> <span class="string">'电影名字'</span>, </span><br><span class="line">movieType <span class="keyword">string</span> <span class="keyword">comment</span> <span class="string">'电影类型'</span>, </span><br><span class="line">sex <span class="keyword">string</span> <span class="keyword">comment</span> <span class="string">'性别'</span>, </span><br><span class="line">age <span class="built_in">int</span> <span class="keyword">comment</span> <span class="string">'年龄'</span>, </span><br><span class="line">occupation <span class="keyword">string</span> <span class="keyword">comment</span> <span class="string">'职业'</span>, </span><br><span class="line">zipcode <span class="keyword">string</span> <span class="keyword">comment</span> <span class="string">'邮政编码'</span></span><br><span class="line">) <span class="keyword">comment</span> <span class="string">'影评三表合一'</span> </span><br><span class="line"><span class="keyword">row</span> <span class="keyword">format</span> <span class="keyword">delimited</span> <span class="keyword">fields</span> <span class="keyword">terminated</span> <span class="keyword">by</span> <span class="string">","</span></span><br><span class="line">location <span class="string">'/hive/movie'</span>;</span><br></pre></td></tr></table></figure>
-<p>这是因为在hive的元数据库中MySQL中的元数据出现乱码</p>
-<ul>
-<li><p>那么我们只需要把相应注释的地方的字符集由 latin1 改成 utf-8，就可以了。用到注释的就三个地方，表、分区、视图。如下修改分为两个步骤：</p>
-<h5 id="1、进入数据库-Metastore-中执行以下-5-条-SQL-语句"><a href="#1、进入数据库-Metastore-中执行以下-5-条-SQL-语句" class="headerlink" title="1、进入数据库 Metastore 中执行以下 5 条 SQL 语句"></a>1、进入数据库 Metastore 中执行以下 5 条 SQL 语句</h5></li>
-<li><p>（1）修改表字段注解和表注解</p>
-</li>
-</ul>
-<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">alter</span> <span class="keyword">table</span> COLUMNS_V2 <span class="keyword">modify</span> <span class="keyword">column</span> <span class="keyword">COMMENT</span> <span class="built_in">varchar</span>(<span class="number">256</span>) <span class="built_in">character</span> <span class="keyword">set</span> utf8;</span><br><span class="line"><span class="keyword">alter</span> <span class="keyword">table</span> TABLE_PARAMS <span class="keyword">modify</span> <span class="keyword">column</span> PARAM_VALUE <span class="built_in">varchar</span>(<span class="number">4000</span>) <span class="built_in">character</span> <span class="keyword">set</span> utf8;</span><br></pre></td></tr></table></figure>
-
-<ul>
-<li>（2）修改分区字段注解</li>
-</ul>
-<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">alter</span> <span class="keyword">table</span> PARTITION_PARAMS <span class="keyword">modify</span> <span class="keyword">column</span> PARAM_VALUE <span class="built_in">varchar</span>(<span class="number">4000</span>) <span class="built_in">character</span> <span class="keyword">set</span> utf8 ;</span><br><span class="line"><span class="keyword">alter</span> <span class="keyword">table</span> PARTITION_KEYS <span class="keyword">modify</span> <span class="keyword">column</span> PKEY_COMMENT <span class="built_in">varchar</span>(<span class="number">4000</span>) <span class="built_in">character</span> <span class="keyword">set</span> utf8;</span><br></pre></td></tr></table></figure>
-
-<ul>
-<li>（3）修改索引注解</li>
-</ul>
-<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">alter</span> <span class="keyword">table</span> INDEX_PARAMS <span class="keyword">modify</span> <span class="keyword">column</span> PARAM_VALUE <span class="built_in">varchar</span>(<span class="number">4000</span>) <span class="built_in">character</span> <span class="keyword">set</span> utf8;</span><br></pre></td></tr></table></figure>
-<h4 id="2、修改-metastore-的连接-URL"><a href="#2、修改-metastore-的连接-URL" class="headerlink" title="2、修改 metastore 的连接 URL"></a>2、修改 metastore 的连接 URL</h4><p> 修改hive-site.xml配置文件</p>
-<p> CDH中修改路径</p>
-<p> hive-&gt;配置-&gt;类别-&gt;高级-&gt;hive-site.xml 的 Hive 复制高级配置代码段（安全阀）</p>
-<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">name</span>&gt;</span>javax.jdo.option.ConnectionURL<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">value</span>&gt;</span>jdbc:mysql://IP:3306/db_name?createDatabaseIfNotExist=true<span class="symbol">&amp;amp;</span>useUnicode=true&amp;characterEncoding=UTF-8<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">description</span>&gt;</span>JDBC connect string for a JDBC metastore<span class="tag">&lt;/<span class="name">description</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br></pre></td></tr></table></figure>
-<p>重启一下hive</p>
-<h5 id="查看表结构"><a href="#查看表结构" class="headerlink" title="查看表结构"></a>查看表结构</h5><figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">DESCRIBE</span>  movie</span><br></pre></td></tr></table></figure>
-
-<figure class="highlight angelscript"><table><tr><td class="code"><pre><span class="line"></span><br><span class="line"><span class="number">1</span>	userID	<span class="built_in">int</span>	客户ID</span><br><span class="line"><span class="number">2</span>	movieID	<span class="built_in">int</span>	用户ID</span><br><span class="line"><span class="number">3</span>	rating	<span class="built_in">int</span>	电影评分</span><br><span class="line"><span class="number">4</span>	timestamped	bigint	评分时间戳</span><br><span class="line"><span class="number">5</span>	movieName	<span class="built_in">string</span>	电影名字</span><br><span class="line"><span class="number">6</span>	movieType	<span class="built_in">string</span>	电影类型</span><br><span class="line"><span class="number">7</span>	sex	<span class="built_in">string</span>	性别</span><br><span class="line"><span class="number">8</span>	age	<span class="built_in">int</span>	年龄</span><br><span class="line"><span class="number">9</span>	occupation	<span class="built_in">string</span>	职业</span><br><span class="line"><span class="number">10</span>	zipcode	<span class="built_in">string</span>	邮政编码</span><br></pre></td></tr></table></figure>
-]]></content>
-      <categories>
-        <category>hive</category>
-      </categories>
-      <tags>
-        <tag>hive 乱码</tag>
       </tags>
   </entry>
   <entry>
@@ -494,6 +494,25 @@
       </tags>
   </entry>
   <entry>
+    <title>Hello World</title>
+    <url>/2020/06/16/hello-world/</url>
+    <content><![CDATA[<p>Welcome to <a href="https://hexo.io/" target="_blank" rel="noopener">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/" target="_blank" rel="noopener">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html" target="_blank" rel="noopener">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues" target="_blank" rel="noopener">GitHub</a>.</p>
+<a id="more"></a>
+<h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo new <span class="string">"My New Post"</span></span><br></pre></td></tr></table></figure>
+
+<p>More info: <a href="https://hexo.io/docs/writing.html" target="_blank" rel="noopener">Writing</a></p>
+<h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure>
+
+<p>More info: <a href="https://hexo.io/docs/server.html" target="_blank" rel="noopener">Server</a></p>
+<h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo generate</span><br></pre></td></tr></table></figure>
+
+<p>More info: <a href="https://hexo.io/docs/generating.html" target="_blank" rel="noopener">Generating</a></p>
+<h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure>
+
+<p>More info: <a href="https://hexo.io/docs/one-command-deployment.html" target="_blank" rel="noopener">Deployment</a></p>
+]]></content>
+  </entry>
+  <entry>
     <title>hive-udf函数</title>
     <url>/2019/01/30/hive-udf%E5%87%BD%E6%95%B0/</url>
     <content><![CDATA[<h2 id="UDF函数开发"><a href="#UDF函数开发" class="headerlink" title="UDF函数开发"></a>UDF函数开发</h2><ul>
@@ -541,25 +560,6 @@
       <tags>
         <tag>UDF</tag>
       </tags>
-  </entry>
-  <entry>
-    <title>Hello World</title>
-    <url>/2020/06/16/hello-world/</url>
-    <content><![CDATA[<p>Welcome to <a href="https://hexo.io/" target="_blank" rel="noopener">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/" target="_blank" rel="noopener">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html" target="_blank" rel="noopener">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues" target="_blank" rel="noopener">GitHub</a>.</p>
-<a id="more"></a>
-<h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo new <span class="string">"My New Post"</span></span><br></pre></td></tr></table></figure>
-
-<p>More info: <a href="https://hexo.io/docs/writing.html" target="_blank" rel="noopener">Writing</a></p>
-<h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure>
-
-<p>More info: <a href="https://hexo.io/docs/server.html" target="_blank" rel="noopener">Server</a></p>
-<h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo generate</span><br></pre></td></tr></table></figure>
-
-<p>More info: <a href="https://hexo.io/docs/generating.html" target="_blank" rel="noopener">Generating</a></p>
-<h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure>
-
-<p>More info: <a href="https://hexo.io/docs/one-command-deployment.html" target="_blank" rel="noopener">Deployment</a></p>
-]]></content>
   </entry>
   <entry>
     <title>hive内部表与外部表区别</title>
