@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Monda:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  <link rel="stylesheet" href="/lib/pace/pace-theme-minimal.min.css">
+  <script src="/lib/pace/pace.min.js"></script>
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"yoursite.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="Map Map转换在DataSet的每个元素上应用用户定义的map函数。它实现了一对一的映射，也就是说，函数必须返回一个元素。  以下代码将Integer对的DataSet转换为Integers的DataSet： 12val intPairs: DataSet[(Int, Int)] &#x3D; &#x2F;&#x2F; [...]val intSums &#x3D; intPairs.map &amp;#123; pair &#x3D;&gt; pa">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Flink DataSet Transformations">
+<meta property="og:url" content="http://yoursite.com/2019/01/25/Flink%20DataSet%20Transformations/index.html">
+<meta property="og:site_name" content="诗与远方">
+<meta property="og:description" content="Map Map转换在DataSet的每个元素上应用用户定义的map函数。它实现了一对一的映射，也就是说，函数必须返回一个元素。  以下代码将Integer对的DataSet转换为Integers的DataSet： 12val intPairs: DataSet[(Int, Int)] &#x3D; &#x2F;&#x2F; [...]val intSums &#x3D; intPairs.map &amp;#123; pair &#x3D;&gt; pa">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2019-01-25T07:03:27.430Z">
+<meta property="article:modified_time" content="2019-01-25T07:03:27.430Z">
+<meta property="article:author" content="king">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://yoursite.com/2019/01/25/Flink%20DataSet%20Transformations/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>Flink DataSet Transformations | 诗与远方</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">诗与远方</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">人道渺渺,仙道莽莽</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/01/25/Flink%20DataSet%20Transformations/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/cat.png">
+      <meta itemprop="name" content="king">
+      <meta itemprop="description" content="诸天气荡荡,我道日兴隆">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="诗与远方">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Flink DataSet Transformations
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-01-25 15:03:27" itemprop="dateCreated datePublished" datetime="2019-01-25T15:03:27+08:00">2019-01-25</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/flink/" itemprop="url" rel="index"><span itemprop="name">flink</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h3 id="Map"><a href="#Map" class="headerlink" title="Map"></a>Map</h3><ul>
+<li>Map转换在DataSet的每个元素上应用用户定义的map函数。它实现了一对一的映射，也就是说，函数必须返回一个元素。</li>
+</ul>
+<p>以下代码将Integer对的DataSet转换为Integers的DataSet：</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">val</span> intPairs: <span class="type">DataSet</span>[(<span class="type">Int</span>, <span class="type">Int</span>)] = <span class="comment">// [...]</span></span><br><span class="line"><span class="keyword">val</span> intSums = intPairs.map &#123; pair =&gt; pair._1 + pair._2 &#125;</span><br></pre></td></tr></table></figure>
+<h3 id="FlatMap"><a href="#FlatMap" class="headerlink" title="FlatMap"></a>FlatMap</h3><ul>
+<li>FlatMap转换在DataSet的每个元素上应用用户定义的平面映射函数。map函数的这种变体可以为每个输入元素返回任意多个结果元素（包括none）。</li>
+</ul>
+<p>以下代码将文本行的DataSet转换为单词的DataSet：</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">val</span> textLines: <span class="type">DataSet</span>[<span class="type">String</span>] = <span class="comment">// [...]</span></span><br><span class="line"><span class="keyword">val</span> words = textLines.flatMap &#123; _.split(<span class="string">" "</span>) &#125;</span><br></pre></td></tr></table></figure>
+<h3 id="MapPartition"><a href="#MapPartition" class="headerlink" title="MapPartition"></a>MapPartition</h3><ul>
+<li>MapPartition在单个函数调用中转换并行分区。map-partition函数将分区作为Iterable获取，并且可以生成任意数量的结果值。每个分区中的元素数量取决于并行度和先前的操作。</li>
+</ul>
+<p>以下代码将文本行的DataSet转换为每个分区的计数数据集：</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">val</span> textLines: <span class="type">DataSet</span>[<span class="type">String</span>] = <span class="comment">// [...]</span></span><br><span class="line"><span class="comment">// Some is required because the return value must be a Collection.</span></span><br><span class="line"><span class="comment">// There is an implicit conversion from Option to a Collection.</span></span><br><span class="line"><span class="keyword">val</span> counts = texLines.mapPartition &#123; in =&gt; <span class="type">Some</span>(in.size) &#125;</span><br></pre></td></tr></table></figure>
+<h3 id="Filter"><a href="#Filter" class="headerlink" title="Filter"></a>Filter</h3><ul>
+<li>Filter转换在DataSet的每个元素上应用用户定义的过滤器函数，并仅保留函数返回的元素true。</li>
+</ul>
+<p>以下代码从DataSet中删除所有小于零的整数：</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">val</span> intNumbers: <span class="type">DataSet</span>[<span class="type">Int</span>] = <span class="comment">// [...]</span></span><br><span class="line"><span class="keyword">val</span> naturalNumbers = intNumbers.filter &#123; _ &gt; <span class="number">0</span> &#125;</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>重要信息：系统假定该函数不会修改应用谓词的元素。违反此假设可能会导致错误的结果。</p>
+</blockquote>
+<h3 id="Projection-of-Tuple-DataSet"><a href="#Projection-of-Tuple-DataSet" class="headerlink" title="Projection of Tuple DataSet"></a>Projection of Tuple DataSet</h3><ul>
+<li>Project转换删除或移动元组DataSet的Tuple字段。该project(int…)方法选择应由其索引保留的元组字段，并在输出元组中定义它们的顺序。</li>
+</ul>
+<p>预测不需要定义用户功能。</p>
+<p>以下代码显示了在DataSet上应用项目转换的不同方法：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">DataSet&lt;Tuple3&lt;Integer, Double, String&gt;&gt; in = <span class="comment">// [...]</span></span><br><span class="line"><span class="comment">// converts Tuple3&lt;Integer, Double, String&gt; into Tuple2&lt;String, Integer&gt;</span></span><br><span class="line">DataSet&lt;Tuple2&lt;String, Integer&gt;&gt; out = in.project(<span class="number">2</span>,<span class="number">0</span>);</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>scala 不支持</p>
+</blockquote>
+<h4 id="Projection-with-Type-Hint"><a href="#Projection-with-Type-Hint" class="headerlink" title="Projection with Type Hint"></a>Projection with Type Hint</h4><blockquote>
+<p>请注意，Java编译器无法推断project运算符的返回类型。如果您对运算符的结果调用另一个运算符，则可能会导致问题，project例如：</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">DataSet&lt;Tuple5&lt;String,String,String,String,String&gt;&gt; ds = ....</span><br><span class="line">DataSet&lt;Tuple1&lt;String&gt;&gt; ds2 = ds.project(<span class="number">0</span>).distinct(<span class="number">0</span>);</span><br></pre></td></tr></table></figure>
+<p>通过提示返回类型的project运算符可以克服此问题，如下所示：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">DataSet&lt;Tuple1&lt;String&gt;&gt; ds2 = ds.&lt;Tuple1&lt;String&gt;&gt;project(<span class="number">0</span>).distinct(<span class="number">0</span>);</span><br></pre></td></tr></table></figure>
+<h3 id="分组数据集的转换"><a href="#分组数据集的转换" class="headerlink" title="分组数据集的转换"></a>分组数据集的转换</h3><p>reduce操作可以对分组数据集进行操作。指定用于分组的密钥可以通过多种方式完成：</p>
+<ul>
+<li>关键表达</li>
+<li>键选择器功能</li>
+<li>一个或多个字段位置键（仅限元组数据集）</li>
+<li>案例类字段（仅限案例类）<br>请查看reduce示例以了解如何指定分组键。</li>
+</ul>
+<h3 id="减少分组数据集"><a href="#减少分组数据集" class="headerlink" title="减少分组数据集"></a>减少分组数据集</h3><ul>
+<li>应用于分组DataSet的Reduce转换使用用户定义的reduce函数将每个组减少为单个元素。对于每组输入元素，reduce函数连续地将元素对组合成一个元素，直到每个组只剩下一个元素。</li>
+</ul>
+<blockquote>
+<p>请注意，对于ReduceFunction返回对象的键控字段，应与输入值匹配。这是因为reduce是可隐式组合的，并且从组合运算符发出的对象在传递给reduce运算符时再次按键分组。</p>
+</blockquote>
+<h4 id="减少由键表达式分组的DataSet"><a href="#减少由键表达式分组的DataSet" class="headerlink" title="减少由键表达式分组的DataSet"></a>减少由键表达式分组的DataSet</h4><p>键表达式指定DataSet的每个元素的一个或多个字段。每个键表达式都是公共字段的名称或getter方法。点可用于向下钻取对象。关键表达式“*”选择所有字段。以下代码显示如何使用键表达式对POJO DataSet进行分组，并使用reduce函数对其进行缩减。</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// some ordinary POJO</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">WC</span>(<span class="params">val word: <span class="type">String</span>, val count: <span class="type">Int</span></span>) </span>&#123;</span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">this</span></span>() &#123;</span><br><span class="line">    <span class="keyword">this</span>(<span class="literal">null</span>, <span class="number">-1</span>)</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="comment">// [...]</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">val</span> words: <span class="type">DataSet</span>[<span class="type">WC</span>] = <span class="comment">// [...]</span></span><br><span class="line"><span class="keyword">val</span> wordCounts = words.groupBy(<span class="string">"word"</span>).reduce &#123;</span><br><span class="line">  (w1, w2) =&gt; <span class="keyword">new</span> <span class="type">WC</span>(w1.word, w1.count + w2.count)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="减少由KeySelector函数分组的DataSet"><a href="#减少由KeySelector函数分组的DataSet" class="headerlink" title="减少由KeySelector函数分组的DataSet"></a>减少由KeySelector函数分组的DataSet</h4><ul>
+<li>键选择器函数从DataSet的每个元素中提取键值。提取的键值用于对DataSet进行分组。以下代码显示如何使用键选择器函数对POJO DataSet进行分组，并使用reduce函数对其进行缩减。</li>
+</ul>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// some ordinary POJO</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">WC</span>(<span class="params">val word: <span class="type">String</span>, val count: <span class="type">Int</span></span>) </span>&#123;</span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">this</span></span>() &#123;</span><br><span class="line">    <span class="keyword">this</span>(<span class="literal">null</span>, <span class="number">-1</span>)</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="comment">// [...]</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">val</span> words: <span class="type">DataSet</span>[<span class="type">WC</span>] = <span class="comment">// [...]</span></span><br><span class="line"><span class="keyword">val</span> wordCounts = words.groupBy &#123; _.word &#125; reduce &#123;</span><br><span class="line">  (w1, w2) =&gt; <span class="keyword">new</span> <span class="type">WC</span>(w1.word, w1.count + w2.count)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="减少由字段位置键分组的DataSet（仅限元组数据集）"><a href="#减少由字段位置键分组的DataSet（仅限元组数据集）" class="headerlink" title="减少由字段位置键分组的DataSet（仅限元组数据集）"></a>减少由字段位置键分组的DataSet（仅限元组数据集）</h4><ul>
+<li>字段位置键指定用作分组键的元组数据集的一个或多个字段。以下代码显示如何使用字段位置键并应用reduce函数</li>
+</ul>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">val</span> tuples = <span class="type">DataSet</span>[(<span class="type">String</span>, <span class="type">Int</span>, <span class="type">Double</span>)] = <span class="comment">// [...]</span></span><br><span class="line"><span class="comment">// group on the first and second Tuple field</span></span><br><span class="line"><span class="keyword">val</span> reducedTuples = tuples.groupBy(<span class="number">0</span>, <span class="number">1</span>).reduce &#123; ... &#125;</span><br></pre></td></tr></table></figure>
+<h4 id="按案例类字段分组的DataSet减少"><a href="#按案例类字段分组的DataSet减少" class="headerlink" title="按案例类字段分组的DataSet减少"></a>按案例类字段分组的DataSet减少</h4><ul>
+<li>使用Case Classes时，您还可以使用字段名称指定分组键：</li>
+</ul>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">case</span> <span class="class"><span class="keyword">class</span> <span class="title">MyClass</span>(<span class="params">val a: <span class="type">String</span>, b: <span class="type">Int</span>, c: <span class="type">Double</span></span>)</span></span><br><span class="line"><span class="class"><span class="title">val</span> <span class="title">tuples</span> </span>= <span class="type">DataSet</span>[<span class="type">MyClass</span>] = <span class="comment">// [...]</span></span><br><span class="line"><span class="comment">// group on the first and second field</span></span><br><span class="line"><span class="keyword">val</span> reducedTuples = tuples.groupBy(<span class="string">"a"</span>, <span class="string">"b"</span>).reduce &#123; ... &#125;</span><br></pre></td></tr></table></figure>
+<h4 id="GroupReduce在分组数据集上"><a href="#GroupReduce在分组数据集上" class="headerlink" title="GroupReduce在分组数据集上"></a>GroupReduce在分组数据集上</h4><ul>
+<li><p>应用于分组DataSet的GroupReduce转换为每个组调用用户定义的group-reduce函数。这与Reduce之间的区别在于用户定义的函数会立即获得整个组。在组的所有元素上使用Iterable调用该函数，并且可以返回任意数量的结果元素。</p>
+</li>
+<li><p>由字段位置键分组的DataSet上的GroupReduce（仅限元组数据集）<br>以下代码显示如何从按Integer分组的DataSet中删除重复的字符串。</p>
+</li>
+</ul>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">val</span> input: <span class="type">DataSet</span>[(<span class="type">Int</span>, <span class="type">String</span>)] = <span class="comment">// [...]</span></span><br><span class="line"><span class="keyword">val</span> output = input.groupBy(<span class="number">0</span>).reduceGroup &#123;</span><br><span class="line">      (in, out: <span class="type">Collector</span>[(<span class="type">Int</span>, <span class="type">String</span>)]) =&gt;</span><br><span class="line">        in.toSet foreach (out.collect)</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+<h4 id="按键表达式，键选择器函数或案例类字段分组的DataSet上的GroupReduce"><a href="#按键表达式，键选择器函数或案例类字段分组的DataSet上的GroupReduce" class="headerlink" title="按键表达式，键选择器函数或案例类字段分组的DataSet上的GroupReduce"></a>按键表达式，键选择器函数或案例类字段分组的DataSet上的GroupReduce</h4><p>类似于Reduce转换中的键表达式， 键选择器函数和案例类字段的工作。</p>
+<h4 id="对已排序的组进行GroupReduce"><a href="#对已排序的组进行GroupReduce" class="headerlink" title="对已排序的组进行GroupReduce"></a>对已排序的组进行GroupReduce</h4><ul>
+<li>group-reduce函数使用Iterable访问组的元素。可选地，Iterable可以按指定的顺序分发组的元素。在许多情况下，这可以帮助降低用户定义的组减少功能的复杂性并提高其效率。</li>
+</ul>
+<p>下面的代码显示了如何删除由Integer分组并按String排序的DataSet中的重复字符串的另一个示例。</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">val</span> input: <span class="type">DataSet</span>[(<span class="type">Int</span>, <span class="type">String</span>)] = <span class="comment">// [...]</span></span><br><span class="line"><span class="keyword">val</span> output = input.groupBy(<span class="number">0</span>).sortGroup(<span class="number">1</span>, <span class="type">Order</span>.<span class="type">ASCENDING</span>).reduceGroup &#123;</span><br><span class="line">      (in, out: <span class="type">Collector</span>[(<span class="type">Int</span>, <span class="type">String</span>)]) =&gt;</span><br><span class="line">        <span class="keyword">var</span> prev: (<span class="type">Int</span>, <span class="type">String</span>) = <span class="literal">null</span></span><br><span class="line">        <span class="keyword">for</span> (t &lt;- in) &#123;</span><br><span class="line">          <span class="keyword">if</span> (prev == <span class="literal">null</span> || prev != t)</span><br><span class="line">            out.collect(t)</span><br><span class="line">            prev = t</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>注意：如果在reduce操作之前使用运算符的基于排序的执行策略建立分组，则GroupSort通常是免费的。</p>
+</blockquote>
+<h4 id="可组合的GroupReduce函数"><a href="#可组合的GroupReduce函数" class="headerlink" title="可组合的GroupReduce函数"></a>可组合的GroupReduce函数</h4><ul>
+<li>与reduce函数相比，group-reduce函数不是可隐式组合的。为了使组合 - 缩减功能可组合，它必须实现GroupCombineFunction接口。</li>
+</ul>
+<blockquote>
+<p>要点：接口的通用输入和输出类型GroupCombineFunction必须等于GroupReduceFunction以下示例中所示的通用输入类型：</p>
+</blockquote>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Combinable GroupReduceFunction that computes two sums.</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">MyCombinableGroupReducer</span></span></span><br><span class="line"><span class="class">  <span class="keyword">extends</span> <span class="title">GroupReduceFunction</span>[(<span class="type">String</span>, <span class="type">Int</span>), <span class="type">String</span>]</span></span><br><span class="line"><span class="class">  <span class="keyword">with</span> <span class="title">GroupCombineFunction</span>[(<span class="type">String</span>, <span class="type">Int</span>), (<span class="type">String</span>, <span class="type">Int</span>)]</span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">  <span class="keyword">override</span> <span class="function"><span class="keyword">def</span> <span class="title">reduce</span></span>(</span><br><span class="line">    in: java.lang.<span class="type">Iterable</span>[(<span class="type">String</span>, <span class="type">Int</span>)],</span><br><span class="line">    out: <span class="type">Collector</span>[<span class="type">String</span>]): <span class="type">Unit</span> =</span><br><span class="line">  &#123;</span><br><span class="line">    <span class="keyword">val</span> r: (<span class="type">String</span>, <span class="type">Int</span>) =</span><br><span class="line">      in.iterator.asScala.reduce( (a,b) =&gt; (a._1, a._2 + b._2) )</span><br><span class="line">    <span class="comment">// concat key and sum and emit</span></span><br><span class="line">    out.collect (r._1 + <span class="string">"-"</span> + r._2)</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">override</span> <span class="function"><span class="keyword">def</span> <span class="title">combine</span></span>(</span><br><span class="line">    in: java.lang.<span class="type">Iterable</span>[(<span class="type">String</span>, <span class="type">Int</span>)],</span><br><span class="line">    out: <span class="type">Collector</span>[(<span class="type">String</span>, <span class="type">Int</span>)]): <span class="type">Unit</span> =</span><br><span class="line">  &#123;</span><br><span class="line">    <span class="keyword">val</span> r: (<span class="type">String</span>, <span class="type">Int</span>) =</span><br><span class="line">      in.iterator.asScala.reduce( (a,b) =&gt; (a._1, a._2 + b._2) )</span><br><span class="line">    <span class="comment">// emit tuple with key and sum</span></span><br><span class="line">    out.collect(r)</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="GroupCombine在分组数据集上"><a href="#GroupCombine在分组数据集上" class="headerlink" title="GroupCombine在分组数据集上"></a>GroupCombine在分组数据集上</h3><ul>
+<li><p>GroupCombine变换是可组合GroupReduceFunction中的组合步骤的一般形式。从某种意义上说，它允许将输入类型组合I到任意输出类型O。相反，GroupReduce中的组合步骤仅允许从输入类型I到输出类型的组合I。这是因为GroupReduceFunction中的reduce步骤需要输入类型I。</p>
+</li>
+<li><p>在一些应用中，期望在执行附加变换（例如，减小数据大小）之前将DataSet组合成中间格式。这可以通过CombineGroup转换以非常低的成本实现。</p>
+</li>
+</ul>
+<blockquote>
+<p>注意： Grouped DataSet上的GroupCombine是在内存中使用贪婪策略执行的，该策略可能不会一次处理所有数据，而是分多步处理。它也可以在各个分区上执行，而无需像GroupReduce转换那样进行数据交换。这可能会导致部分结果。</p>
+</blockquote>
+<p>以下示例演示了如何将CombineGroup转换用于备用WordCount实现。</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="keyword">val</span> input: <span class="type">DataSet</span>[<span class="type">String</span>] = [..] <span class="comment">// The words received as input</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">val</span> combinedWords: <span class="type">DataSet</span>[(<span class="type">String</span>, <span class="type">Int</span>)] = input</span><br><span class="line">  .groupBy(<span class="number">0</span>)</span><br><span class="line">  .combineGroup &#123;</span><br><span class="line">    (words, out: <span class="type">Collector</span>[(<span class="type">String</span>, <span class="type">Int</span>)]) =&gt;</span><br><span class="line">        <span class="keyword">var</span> key: <span class="type">String</span> = <span class="literal">null</span></span><br><span class="line">        <span class="keyword">var</span> count = <span class="number">0</span></span><br><span class="line"></span><br><span class="line">        <span class="keyword">for</span> (word &lt;- words) &#123;</span><br><span class="line">            key = word</span><br><span class="line">            count += <span class="number">1</span></span><br><span class="line">        &#125;</span><br><span class="line">        out.collect((key, count))</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">val</span> output: <span class="type">DataSet</span>[(<span class="type">String</span>, <span class="type">Int</span>)] = combinedWords</span><br><span class="line">  .groupBy(<span class="number">0</span>)</span><br><span class="line">  .reduceGroup &#123;</span><br><span class="line">    (words, out: <span class="type">Collector</span>[(<span class="type">String</span>, <span class="type">Int</span>)]) =&gt;</span><br><span class="line">        <span class="keyword">var</span> key: <span class="type">String</span> = <span class="literal">null</span></span><br><span class="line">        <span class="keyword">var</span> sum = <span class="number">0</span></span><br><span class="line"></span><br><span class="line">        <span class="keyword">for</span> ((word, sum) &lt;- words) &#123;</span><br><span class="line">            key = word</span><br><span class="line">            sum += count</span><br><span class="line">        &#125;</span><br><span class="line">        out.collect((key, sum))</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>上面的替代WordCount实现演示了GroupCombine在执行GroupReduce转换之前如何组合单词。上面的例子只是一个概念证明。注意，组合步骤如何更改DataSet的类型，这通常需要在执行GroupReduce之前进行额外的Map转换。</p>
+<h3 id="聚合在分组元组数据集上"><a href="#聚合在分组元组数据集上" class="headerlink" title="聚合在分组元组数据集上"></a>聚合在分组元组数据集上</h3><p>有一些常用的聚合操作经常使用。Aggregate转换提供以下内置聚合函数：</p>
+<ul>
+<li>Sum,</li>
+<li>Min, and</li>
+<li>Max.<br>聚合转换只能应用于元组数据集，并且仅支持字段位置键进行分组。</li>
+</ul>
+<p>以下代码显示如何对按字段位置键分组的DataSet应用聚合转换：</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">val</span> input: <span class="type">DataSet</span>[(<span class="type">Int</span>, <span class="type">String</span>, <span class="type">Double</span>)] = <span class="comment">// [...]</span></span><br><span class="line"><span class="keyword">val</span> output = input.groupBy(<span class="number">1</span>).aggregate(<span class="type">SUM</span>, <span class="number">0</span>).and(<span class="type">MIN</span>, <span class="number">2</span>)</span><br></pre></td></tr></table></figure>
+<p>要在DataSet上应用多个聚合，必须.and()在第一个聚合之后使用该函数，这意味着.aggregate(SUM, 0).and(MIN, 2)生成字段0的总和和原始DataSet的字段2的最小值。与此相反，.aggregate(SUM, 0).aggregate(MIN, 2)将在聚合上应用聚合。在给定的示例中，在计算由字段1分组的字段0的总和之后，它将产生字段2的最小值。</p>
+<blockquote>
+<p>注意：将来会扩展聚合函数集。</p>
+</blockquote>
+<h3 id="MinBy-MaxBy在Grouped-Tuple-DataSet上"><a href="#MinBy-MaxBy在Grouped-Tuple-DataSet上" class="headerlink" title="MinBy / MaxBy在Grouped Tuple DataSet上"></a>MinBy / MaxBy在Grouped Tuple DataSet上</h3><p>8 MinBy（MaxBy）转换为每组元组选择一个元组。选定的元组是一个元组，其一个或多个指定字段的值最小（最大）。用于比较的字段必须是有效的关键字段，即可比较。如果多个元组具有最小（最大）字段值，则返回这些元组的任意元组。</p>
+<p>下面的代码显示了如何选择具有最小值的元组，每个元组的字段Integer和Double字段具有相同的String值DataSet&lt;Tuple3&lt;Integer, String, Double&gt;&gt;：</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">val</span> input: <span class="type">DataSet</span>[(<span class="type">Int</span>, <span class="type">String</span>, <span class="type">Double</span>)] = <span class="comment">// [...]</span></span><br><span class="line"><span class="keyword">val</span> output: <span class="type">DataSet</span>[(<span class="type">Int</span>, <span class="type">String</span>, <span class="type">Double</span>)] = input</span><br><span class="line">                                   .groupBy(<span class="number">1</span>)  <span class="comment">// group DataSet on second field</span></span><br><span class="line">                                   .minBy(<span class="number">0</span>, <span class="number">2</span>) <span class="comment">// select tuple with minimum values for first and third field.</span></span><br></pre></td></tr></table></figure>
+<h3 id="减少完整的DataSet"><a href="#减少完整的DataSet" class="headerlink" title="减少完整的DataSet"></a>减少完整的DataSet</h3><ul>
+<li>Reduce转换将用户定义的reduce函数应用于DataSet的所有元素。reduce函数随后将元素对组合成一个元素，直到只剩下一个元素。</li>
+</ul>
+<p>以下代码显示了如何对Integer DataSet的所有元素求和：</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">val</span> intNumbers = env.fromElements(<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>)</span><br><span class="line"><span class="keyword">val</span> sum = intNumbers.reduce (_ + _)</span><br></pre></td></tr></table></figure>
+<p>使用Reduce转换减少完整的DataSet意味着最终的Reduce操作不能并行完成。但是，reduce函数可以自动组合，因此Reduce转换不会限制大多数用例的可伸缩性。</p>
+<h3 id="完整DataSet上的GroupReduce"><a href="#完整DataSet上的GroupReduce" class="headerlink" title="完整DataSet上的GroupReduce"></a>完整DataSet上的GroupReduce</h3><ul>
+<li>GroupReduce转换在DataSet的所有元素上应用用户定义的group-reduce函数。group-reduce可以迭代DataSet的所有元素并返回任意数量的结果元素。</li>
+</ul>
+<p>以下示例显示如何在完整DataSet上应用GroupReduce转换：</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">val</span> input: <span class="type">DataSet</span>[<span class="type">Int</span>] = <span class="comment">// [...]</span></span><br><span class="line"><span class="keyword">val</span> output = input.reduceGroup(<span class="keyword">new</span> <span class="type">MyGroupReducer</span>())</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>注意：如果group-reduce函数不可组合，则无法并行完成对完整DataSet的GroupReduce转换。因此，这可能是计算密集型操作。请参阅上面的“可组合GroupReduceFunctions”一节，了解如何实现可组合的group-reduce功能。</p>
+</blockquote>
+<h3 id="GroupCombine在完整的DataSet上"><a href="#GroupCombine在完整的DataSet上" class="headerlink" title="GroupCombine在完整的DataSet上"></a>GroupCombine在完整的DataSet上</h3><ul>
+<li>完整DataSet上的GroupCombine与分组DataSet上的GroupCombine类似。数据在所有节点上分区，然后以贪婪的方式组合（即，只有一次合并到存储器中的数据）。</li>
+</ul>
+<h3 id="在完整的Tuple-DataSet上聚合"><a href="#在完整的Tuple-DataSet上聚合" class="headerlink" title="在完整的Tuple DataSet上聚合"></a>在完整的Tuple DataSet上聚合</h3><p>有一些常用的聚合操作经常使用。Aggregate转换提供以下内置聚合函数：</p>
+<ul>
+<li>Sum,</li>
+<li>Min, and</li>
+<li>Max.<br>聚合转换只能应用于元组数据集。</li>
+</ul>
+<p>以下代码显示如何在完整DataSet上应用聚合转换：</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">val</span> input: <span class="type">DataSet</span>[(<span class="type">Int</span>, <span class="type">String</span>, <span class="type">Double</span>)] = <span class="comment">// [...]</span></span><br><span class="line"><span class="keyword">val</span> output = input.aggregate(<span class="type">SUM</span>, <span class="number">0</span>).and(<span class="type">MIN</span>, <span class="number">2</span>)</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>注意：扩展支持的聚合功能集在我们的路线图中。</p>
+</blockquote>
+<h3 id="完整的Tuple-DataSet上的MinBy-MaxBy"><a href="#完整的Tuple-DataSet上的MinBy-MaxBy" class="headerlink" title="完整的Tuple DataSet上的MinBy / MaxBy"></a>完整的Tuple DataSet上的MinBy / MaxBy</h3><ul>
+<li>MinBy（MaxBy）转换从元组的DataSet中选择一个元组。选定的元组是一个元组，其一个或多个指定字段的值最小（最大）。用于比较的字段必须是有效的关键字段，即可比较。如果多个元组具有最小（最大）字段值，则返回这些元组的任意元组。</li>
+</ul>
+<p>下面的代码演示如何选择与为最大值的元组Integer，并Double从一个领域DataSet&lt;Tuple3&lt;Integer, String, Double&gt;&gt;：</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">val</span> input: <span class="type">DataSet</span>[(<span class="type">Int</span>, <span class="type">String</span>, <span class="type">Double</span>)] = <span class="comment">// [...]</span></span><br><span class="line"><span class="keyword">val</span> output: <span class="type">DataSet</span>[(<span class="type">Int</span>, <span class="type">String</span>, <span class="type">Double</span>)] = input                          </span><br><span class="line">                                   .maxBy(<span class="number">0</span>, <span class="number">2</span>) <span class="comment">// select tuple with maximum values for first and third field.</span></span><br></pre></td></tr></table></figure>
+    </div>
+
+    
+    
+    
+        
+
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>本文作者： </strong>king
+  </li>
+  <li class="post-copyright-link">
+    <strong>本文链接：</strong>
+    <a href="http://yoursite.com/2019/01/25/Flink%20DataSet%20Transformations/" title="Flink DataSet Transformations">http://yoursite.com/2019/01/25/Flink DataSet Transformations/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2019/01/25/CDH6.0.1%20HUE%20%E8%AE%BF%E9%97%AEHBase%E6%8A%A5500%E9%94%99%E8%AF%AF%20%EF%BC%8C%E6%97%A0%E6%B3%95%E8%BF%9E%E6%8E%A5thrift/" rel="prev" title="CDH6.0.1 HUE 访问HBase报500错误 ，无法连接thrift">
+      <i class="fa fa-chevron-left"></i> CDH6.0.1 HUE 访问HBase报500错误 ，无法连接thrift
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2019/01/25/Flink%20DataSet%20%E8%BF%AD%E4%BB%A3/" rel="next" title="Flink DataSet 迭代">
+      Flink DataSet 迭代 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#Map"><span class="nav-number">1.</span> <span class="nav-text">Map</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#FlatMap"><span class="nav-number">2.</span> <span class="nav-text">FlatMap</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#MapPartition"><span class="nav-number">3.</span> <span class="nav-text">MapPartition</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Filter"><span class="nav-number">4.</span> <span class="nav-text">Filter</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Projection-of-Tuple-DataSet"><span class="nav-number">5.</span> <span class="nav-text">Projection of Tuple DataSet</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#Projection-with-Type-Hint"><span class="nav-number">5.1.</span> <span class="nav-text">Projection with Type Hint</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#分组数据集的转换"><span class="nav-number">6.</span> <span class="nav-text">分组数据集的转换</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#减少分组数据集"><span class="nav-number">7.</span> <span class="nav-text">减少分组数据集</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#减少由键表达式分组的DataSet"><span class="nav-number">7.1.</span> <span class="nav-text">减少由键表达式分组的DataSet</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#减少由KeySelector函数分组的DataSet"><span class="nav-number">7.2.</span> <span class="nav-text">减少由KeySelector函数分组的DataSet</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#减少由字段位置键分组的DataSet（仅限元组数据集）"><span class="nav-number">7.3.</span> <span class="nav-text">减少由字段位置键分组的DataSet（仅限元组数据集）</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#按案例类字段分组的DataSet减少"><span class="nav-number">7.4.</span> <span class="nav-text">按案例类字段分组的DataSet减少</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#GroupReduce在分组数据集上"><span class="nav-number">7.5.</span> <span class="nav-text">GroupReduce在分组数据集上</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#按键表达式，键选择器函数或案例类字段分组的DataSet上的GroupReduce"><span class="nav-number">7.6.</span> <span class="nav-text">按键表达式，键选择器函数或案例类字段分组的DataSet上的GroupReduce</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#对已排序的组进行GroupReduce"><span class="nav-number">7.7.</span> <span class="nav-text">对已排序的组进行GroupReduce</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#可组合的GroupReduce函数"><span class="nav-number">7.8.</span> <span class="nav-text">可组合的GroupReduce函数</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#GroupCombine在分组数据集上"><span class="nav-number">8.</span> <span class="nav-text">GroupCombine在分组数据集上</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#聚合在分组元组数据集上"><span class="nav-number">9.</span> <span class="nav-text">聚合在分组元组数据集上</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#MinBy-MaxBy在Grouped-Tuple-DataSet上"><span class="nav-number">10.</span> <span class="nav-text">MinBy &#x2F; MaxBy在Grouped Tuple DataSet上</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#减少完整的DataSet"><span class="nav-number">11.</span> <span class="nav-text">减少完整的DataSet</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#完整DataSet上的GroupReduce"><span class="nav-number">12.</span> <span class="nav-text">完整DataSet上的GroupReduce</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#GroupCombine在完整的DataSet上"><span class="nav-number">13.</span> <span class="nav-text">GroupCombine在完整的DataSet上</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#在完整的Tuple-DataSet上聚合"><span class="nav-number">14.</span> <span class="nav-text">在完整的Tuple DataSet上聚合</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#完整的Tuple-DataSet上的MinBy-MaxBy"><span class="nav-number">15.</span> <span class="nav-text">完整的Tuple DataSet上的MinBy &#x2F; MaxBy</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="king"
+      src="/images/cat.png">
+  <p class="site-author-name" itemprop="name">king</p>
+  <div class="site-description" itemprop="description">诸天气荡荡,我道日兴隆</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives">
+          <span class="site-state-item-count">20</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">15</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/wangshubing1" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;wangshubing1" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:wang_shubing@126.com" title="E-Mail → mailto:wang_shubing@126.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/TXBSW" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;TXBSW" rel="noopener" target="_blank"><i class="copyright fa-fw"></i>CSDN</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.jianshu.com/u/98ab302c7f1a" title="简书 → https:&#x2F;&#x2F;www.jianshu.com&#x2F;u&#x2F;98ab302c7f1a" rel="noopener" target="_blank"><i class="heartbeat fa-fw"></i>简书</a>
+      </span>
+  </div>
+  <div class="cc-license motion-element" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" rel="noopener" target="_blank"><img src="/images/cc-by-nc-sa.svg" alt="Creative Commons"></a>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">king</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/lozad@1/dist/lozad.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Monda:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  <link rel="stylesheet" href="/lib/pace/pace-theme-minimal.min.css">
+  <script src="/lib/pace/pace.min.js"></script>
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"yoursite.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="对于流处理（DataStream），Flink相同提供了对迭代的支持。这一节我们主要来分析流处理中的迭代，我们将会看到流处理中的迭代相较于批处理有类似之处。但差异也是十分之明显。  可迭代的流处理程序同意定义“步函数”（step function）并将其内嵌到一个可迭代的流（IterativeStream）中。由于一个流处理程序可能永不终止，因此不同于批处理中的迭代机制，流处理中无法设置迭代的最">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Flink流处理之迭代案例">
+<meta property="og:url" content="http://yoursite.com/2019/01/29/Flink%E6%B5%81%E5%A4%84%E7%90%86%E4%B9%8B%E8%BF%AD%E4%BB%A3%E6%A1%88%E4%BE%8B/index.html">
+<meta property="og:site_name" content="诗与远方">
+<meta property="og:description" content="对于流处理（DataStream），Flink相同提供了对迭代的支持。这一节我们主要来分析流处理中的迭代，我们将会看到流处理中的迭代相较于批处理有类似之处。但差异也是十分之明显。  可迭代的流处理程序同意定义“步函数”（step function）并将其内嵌到一个可迭代的流（IterativeStream）中。由于一个流处理程序可能永不终止，因此不同于批处理中的迭代机制，流处理中无法设置迭代的最">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2019-01-29T08:46:08.203Z">
+<meta property="article:modified_time" content="2019-01-29T08:46:08.203Z">
+<meta property="article:author" content="king">
+<meta property="article:tag" content="flink">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://yoursite.com/2019/01/29/Flink%E6%B5%81%E5%A4%84%E7%90%86%E4%B9%8B%E8%BF%AD%E4%BB%A3%E6%A1%88%E4%BE%8B/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>Flink流处理之迭代案例 | 诗与远方</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">诗与远方</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">人道渺渺,仙道莽莽</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/01/29/Flink%E6%B5%81%E5%A4%84%E7%90%86%E4%B9%8B%E8%BF%AD%E4%BB%A3%E6%A1%88%E4%BE%8B/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/cat.png">
+      <meta itemprop="name" content="king">
+      <meta itemprop="description" content="诸天气荡荡,我道日兴隆">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="诗与远方">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Flink流处理之迭代案例
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-01-29 16:46:08" itemprop="dateCreated datePublished" datetime="2019-01-29T16:46:08+08:00">2019-01-29</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/flink/" itemprop="url" rel="index"><span itemprop="name">flink</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <ul>
+<li><p>对于流处理（DataStream），Flink相同提供了对迭代的支持。这一节我们主要来分析流处理中的迭代，我们将会看到流处理中的迭代相较于批处理有类似之处。但差异也是十分之明显。</p>
+</li>
+<li><p>可迭代的流处理程序同意定义“步函数”（step function）并将其内嵌到一个可迭代的流（IterativeStream）中。由于一个流处理程序可能永不终止，因此不同于批处理中的迭代机制，流处理中无法设置迭代的最大次数。取而代之的是，你能够指定等待反馈输入的最大时间间隔（假设超过该时间间隔没有反馈元素到来。那么该迭代将会终止）。通过应用split或filter转换，你能够指定流的哪一部分用于反馈给迭代头，哪一部分分发给下游。这里我们以filter作为演示样例来展示可迭代的流处理程序的API使用模式。</p>
+</li>
+</ul>
+<ol>
+<li>首先。基于输入流构建IterativeStream。这是一个迭代的起始。通常称之为迭代头：</li>
+</ol>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">IterativeStream&lt;Integer&gt; iteration = inputStream.iterate();</span><br></pre></td></tr></table></figure>
+
+<ol start="2">
+<li>接着。我们指定一系列的转换操作用于表述在迭代过程中运行的逻辑（这里简单以map转换作为演示样例）。map API所接受的UDF就是我们上文所说的步函数：</li>
+</ol>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">DataStream&lt;Integer&gt; iteratedStream = iteration.map(<span class="comment">/* this is executed many times */</span>);</span><br></pre></td></tr></table></figure>
+
+<ol start="3">
+<li>然后。作为迭代我们肯定须要有数据反馈给迭代头进行反复计算，所以我们从迭代过的流中过滤出符合条件的元素组成的部分流，我们称之为反馈流：</li>
+</ol>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">DataStream&lt;Integer&gt; feedbackStream = iteratedStream.filter(<span class="comment">/* one part of the stream */</span>);</span><br></pre></td></tr></table></figure>
+
+<ol start="4">
+<li>将反馈流反馈给迭代头就意味着一个迭代的完整逻辑的完毕，那么它就能够“关闭”这个闭合的“环”了。通过调用IterativeStream的closeWith这一实例方法能够关闭一个迭代（也可表述为定义了迭代尾）。传递给closeWith的数据流将会反馈给迭代头：</li>
+</ol>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">iteration.closeWith(feedbackStream);</span><br></pre></td></tr></table></figure>
+
+<ol start="5">
+<li>另外，一个惯用的模式是过滤出须要继续向前分发的部分流，这个过滤转换事实上定义的是“终止迭代”的逻辑条件，符合条件的元素将被分发给下游而不用于进行下一次迭代：</li>
+</ol>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">DataStream&lt;Integer&gt; output = iteratedStream.filter(<span class="comment">/* some other part of the stream */</span>);</span><br></pre></td></tr></table></figure>
+<h3 id="eg"><a href="#eg" class="headerlink" title="eg:"></a>eg:</h3><ol>
+<li>首先，我们先通过source函数创建初始的流对象inputStream：</li>
+</ol>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">DataStream&lt;Tuple2&lt;Integer, Integer&gt;&gt; inputStream = env.addSource(<span class="keyword">new</span> RandomFibonacciSource());</span><br></pre></td></tr></table></figure>
+<p>该source函数会生成二元组序列，二元组的两个字段值是随机生成的作为斐波那契数列的初始值：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="class"><span class="keyword">class</span> <span class="title">RandomFibonacciSource</span>        </span></span><br><span class="line"><span class="class">    <span class="keyword">implements</span> <span class="title">SourceFunction</span>&lt;<span class="title">Tuple2</span>&lt;<span class="title">Integer</span>, <span class="title">Integer</span>&gt;&gt; </span>&#123;    </span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> Random random = <span class="keyword">new</span> Random();    </span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">volatile</span> <span class="keyword">boolean</span> isRunning = <span class="keyword">true</span>;    </span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">int</span> counter = <span class="number">0</span>;   </span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">(SourceContext&lt;Tuple2&lt;Integer, Integer&gt;&gt; ctx)</span> <span class="keyword">throws</span> Exception </span>&#123;        </span><br><span class="line">        <span class="keyword">while</span> (isRunning &amp;&amp; counter &lt; MAX_RANDOM_VALUE) &#123;            </span><br><span class="line">            <span class="keyword">int</span> first = random.nextInt(MAX_RANDOM_VALUE / <span class="number">2</span> - <span class="number">1</span>) + <span class="number">1</span>;            </span><br><span class="line">            <span class="keyword">int</span> second = random.nextInt(MAX_RANDOM_VALUE / <span class="number">2</span> -<span class="number">1</span>) + <span class="number">1</span>;  </span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span> (first &gt; second) <span class="keyword">continue</span>;            </span><br><span class="line"></span><br><span class="line">            ctx.collect(<span class="keyword">new</span> Tuple2&lt;Integer, Integer&gt;(first, second));            </span><br><span class="line">            counter++;            </span><br><span class="line">            Thread.sleep(<span class="number">50</span>);        </span><br><span class="line">        &#125;    </span><br><span class="line">    &#125;    </span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">cancel</span><span class="params">()</span> </span>&#123;        </span><br><span class="line">        isRunning = <span class="keyword">false</span>;    </span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ol start="2">
+<li>为了对新计算的斐波那契数列中的值以及累加的迭代次数进行存储，我们须要将二元组数据流转换为五元组数据流，并据此创建迭代对象：</li>
+</ol>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">IterativeStream&lt;Tuple5&lt;Integer, Integer, Integer, Integer, Integer&gt;&gt; iterativeStream =        </span><br><span class="line">    inputStream.map(<span class="keyword">new</span> TupleTransformMapFunction()).iterate(<span class="number">5000</span>);</span><br></pre></td></tr></table></figure>
+<blockquote>
+<ul>
+<li>注意上面代码段中iterate API的參数5000，不是指迭代5000次，而是等待反馈输入的最大时间间隔为5秒。</li>
+<li>流被觉得是无界的。所以无法像批处理迭代那样指定最大迭代次数。但它同意指定一个最大等待间隔，假设在给定的时间间隔里没有元素到来。那么将会终止迭代。</li>
+</ul>
+</blockquote>
+<p>元组转换的map函数实现：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="class"><span class="keyword">class</span> <span class="title">TupleTransformMapFunction</span> <span class="keyword">extends</span> <span class="title">RichMapFunction</span>&lt;<span class="title">Tuple2</span>&lt;<span class="title">Integer</span>,        </span></span><br><span class="line"><span class="class">    <span class="title">Integer</span>&gt;, <span class="title">Tuple5</span>&lt;<span class="title">Integer</span>, <span class="title">Integer</span>, <span class="title">Integer</span>, <span class="title">Integer</span>, <span class="title">Integer</span>&gt;&gt; </span>&#123;    </span><br><span class="line">    <span class="function"><span class="keyword">public</span> Tuple5&lt;Integer, Integer, Integer, Integer, Integer&gt; <span class="title">map</span><span class="params">(            </span></span></span><br><span class="line"><span class="function"><span class="params">        Tuple2&lt;Integer, Integer&gt; inputTuples)</span> <span class="keyword">throws</span> Exception </span>&#123;        </span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> Tuple5&lt;Integer, Integer, Integer, Integer, Integer&gt;(                </span><br><span class="line">            inputTuples.f0,                </span><br><span class="line">            inputTuples.f1,                </span><br><span class="line">            inputTuples.f0,                </span><br><span class="line">            inputTuples.f1,                </span><br><span class="line">            <span class="number">0</span>);    </span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>上面五元组中，当中索引为0。1这两个位置的元素，始终都是最初生成的两个元素不会变化，而后三个字段都会随着迭代而变化。</p>
+</blockquote>
+<ol start="3">
+<li>在迭代流iterativeStream创建完毕之后，我们将基于它运行斐波那契数列的步函数并产生斐波那契数列流fibonacciStream：</li>
+</ol>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">DataStream&lt;Tuple5&lt;Integer, Integer, Integer, Integer, Integer&gt;&gt; fibonacciStream =        </span><br><span class="line">    iterativeStream.map(<span class="keyword">new</span> FibonacciCalcStepFunction());</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>这里的fibonacciStream仅仅是一个代称，当中的数据并非真正的斐波那契数列，事实上就是上面那个五元组。</p>
+</blockquote>
+<p>当中用于计算斐波那契数列的步函数实现例如以下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="class"><span class="keyword">class</span> <span class="title">FibonacciCalcStepFunction</span> <span class="keyword">extends</span>        </span></span><br><span class="line"><span class="class">    <span class="title">RichMapFunction</span>&lt;<span class="title">Tuple5</span>&lt;<span class="title">Integer</span>, <span class="title">Integer</span>, <span class="title">Integer</span>, <span class="title">Integer</span>, <span class="title">Integer</span>&gt;,        </span></span><br><span class="line"><span class="class">    <span class="title">Tuple5</span>&lt;<span class="title">Integer</span>, <span class="title">Integer</span>, <span class="title">Integer</span>, <span class="title">Integer</span>, <span class="title">Integer</span>&gt;&gt; </span>&#123;    </span><br><span class="line">    <span class="function"><span class="keyword">public</span> Tuple5&lt;Integer, Integer, Integer, Integer, Integer&gt; <span class="title">map</span><span class="params">(            </span></span></span><br><span class="line"><span class="function"><span class="params">        Tuple5&lt;Integer, Integer, Integer, Integer, Integer&gt; inputTuple)</span> <span class="keyword">throws</span> Exception </span>&#123;        </span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> Tuple5&lt;Integer, Integer, Integer, Integer, Integer&gt;(                </span><br><span class="line">            inputTuple.f0,                </span><br><span class="line">            inputTuple.f1,                </span><br><span class="line">            inputTuple.f3,                </span><br><span class="line">            inputTuple.f2 + inputTuple.f3,                </span><br><span class="line">            ++inputTuple.f4);    </span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<blockquote>
+<ul>
+<li>正如上文所述。后三个字段会产生变化。在计算之前，数列最后一个元素会被保留。也就是f3相应的元素，然后通过f2元素加上f3元素会产生最新值并更新f3元素。而f4则会累加。</li>
+</ul>
+</blockquote>
+<blockquote>
+<ul>
+<li>随着迭代次数添加，不是整个数列都会被保留。仅仅有最初的两个元素和最新的两个元素会被保留，这里也不是必需保留整个数列，由于我们不须要完整的数列。我们仅仅须要对最新的两个元素进行推断就可以。</li>
+</ul>
+</blockquote>
+<ol start="4">
+<li>每一个元素计算斐波那契数列的新值并产生了fibonacciStream，可是我们须要对最新的两个值进行推断。看它们是否超过了指定的阈值。超过了阈值的元组将会被输出，而没有超过的则会再次參与迭代。因此这将产生两个不同的分支。我们也为此构建了分支流：</li>
+</ol>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">SplitStream&lt;Tuple5&lt;Integer, Integer, Integer, Integer, Integer&gt;&gt; branchedStream =        </span><br><span class="line">    fibonacciStream.split(<span class="keyword">new</span> FibonacciOverflowSelector());</span><br></pre></td></tr></table></figure>
+<p>而对是否超过阈值的元组进行推断并分离的实现例如以下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="class"><span class="keyword">class</span> <span class="title">FibonacciOverflowSelector</span> <span class="keyword">implements</span> <span class="title">OutputSelector</span>&lt;</span></span><br><span class="line"><span class="class">    <span class="title">Tuple5</span>&lt;<span class="title">Integer</span>, <span class="title">Integer</span>, <span class="title">Integer</span>, <span class="title">Integer</span>, <span class="title">Integer</span>&gt;&gt; </span>&#123;    </span><br><span class="line">    <span class="function"><span class="keyword">public</span> Iterable&lt;String&gt; <span class="title">select</span><span class="params">(            </span></span></span><br><span class="line"><span class="function"><span class="params">        Tuple5&lt;Integer, Integer, Integer, Integer, Integer&gt; inputTuple)</span> </span>&#123;        </span><br><span class="line">        <span class="keyword">if</span> (inputTuple.f2 &lt; OVERFLOW_THRESHOLD &amp;&amp; inputTuple.f3 &lt; OVERFLOW_THRESHOLD) &#123;            </span><br><span class="line">            <span class="keyword">return</span> Collections.singleton(ITERATE_FLAG);        </span><br><span class="line">        &#125;        </span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> Collections.singleton(OUTPUT_FLAG);    </span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在筛选方法select中，我们对不同的分支以不同的常量标识符进行标识：ITERATE_FLAG（还要继续迭代）和OUTPUT_FLAG（直接输出）。</p>
+<p>产生了分支流之后。我们就能够从中检出不同的流分支做迭代或者输出处理。</p>
+<ol start="5">
+<li>对须要再次迭代的，就通过迭代流的closeWith方法反馈给迭代头：</li>
+</ol>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">iterativeStream.closeWith(branchedStream.select(ITERATE_FLAG));</span><br></pre></td></tr></table></figure>
+
+<ol start="6">
+<li>而对于不须要的迭代就直接让其流向下游处理，这里我们仅仅是简单得将流“重构”了一下然后直接输出：</li>
+</ol>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">DataStream&lt;Tuple3&lt;Integer, Integer, Integer&gt;&gt; outputStream = branchedStream        </span><br><span class="line">    .select(OUTPUT_FLAG).map(<span class="keyword">new</span> BuildOutputTupleMapFunction());</span><br><span class="line">outputStream.print();</span><br></pre></td></tr></table></figure>
+<p>所谓的重构就是将之前的五元组又一次缩减为三元组，实现例如以下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="class"><span class="keyword">class</span> <span class="title">BuildOutputTupleMapFunction</span> <span class="keyword">extends</span> <span class="title">RichMapFunction</span>&lt;        </span></span><br><span class="line"><span class="class">    <span class="title">Tuple5</span>&lt;<span class="title">Integer</span>, <span class="title">Integer</span>, <span class="title">Integer</span>, <span class="title">Integer</span>, <span class="title">Integer</span>&gt;,        </span></span><br><span class="line"><span class="class">    <span class="title">Tuple3</span>&lt;<span class="title">Integer</span>, <span class="title">Integer</span>, <span class="title">Integer</span>&gt;&gt; </span>&#123;    </span><br><span class="line">    <span class="function"><span class="keyword">public</span> Tuple3&lt;Integer, Integer, Integer&gt; <span class="title">map</span><span class="params">(Tuple5&lt;Integer, Integer, Integer, Integer,            </span></span></span><br><span class="line"><span class="function"><span class="params">        Integer&gt; inputTuple)</span> <span class="keyword">throws</span> Exception </span>&#123;        </span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> Tuple3&lt;Integer, Integer, Integer&gt;(                </span><br><span class="line">            inputTuple.f0,                </span><br><span class="line">            inputTuple.f1,                </span><br><span class="line">            inputTuple.f4);    </span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>完整的主干程序代码例如以下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> Exception </span>&#123;    </span><br><span class="line">    StreamExecutionEnvironment env = StreamExecutionEnvironment            </span><br><span class="line">        .getExecutionEnvironment().setBufferTimeout(<span class="number">1</span>);</span><br><span class="line"></span><br><span class="line">    DataStream&lt;Tuple2&lt;Integer, Integer&gt;&gt; inputStream = env.addSource(<span class="keyword">new</span> RandomFibonacciSource());    </span><br><span class="line"></span><br><span class="line">    IterativeStream&lt;Tuple5&lt;Integer, Integer, Integer, Integer, Integer&gt;&gt; iterativeStream =            </span><br><span class="line">        inputStream.map(<span class="keyword">new</span> TupleTransformMapFunction()).iterate(<span class="number">5000</span>);    </span><br><span class="line"></span><br><span class="line">    DataStream&lt;Tuple5&lt;Integer, Integer, Integer, Integer, Integer&gt;&gt; fibonacciStream =            </span><br><span class="line">        iterativeStream.map(<span class="keyword">new</span> FibonacciCalcStepFunction());    </span><br><span class="line"></span><br><span class="line">    SplitStream&lt;Tuple5&lt;Integer, Integer, Integer, Integer, Integer&gt;&gt; branchedStream =            </span><br><span class="line">        fibonacciStream.split(<span class="keyword">new</span> FibonacciOverflowSelector());    </span><br><span class="line"></span><br><span class="line">    iterativeStream.closeWith(branchedStream.select(ITERATE_FLAG));    </span><br><span class="line"></span><br><span class="line">    DataStream&lt;Tuple3&lt;Integer, Integer, Integer&gt;&gt; outputStream = branchedStream            </span><br><span class="line">        .select(OUTPUT_FLAG).map(<span class="keyword">new</span> BuildOutputTupleMapFunction());    </span><br><span class="line"></span><br><span class="line">    outputStream.print();    </span><br><span class="line">    env.execute(<span class="string">"Streaming Iteration Example"</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="输出"><a href="#输出" class="headerlink" title="输出"></a>输出</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">1&gt;</span><span class="bash"> (2,3,3)</span></span><br><span class="line"><span class="meta">2&gt;</span><span class="bash"> (3,4,2)</span></span><br><span class="line"><span class="meta">3&gt;</span><span class="bash"> (2,4,2)</span></span><br><span class="line"><span class="meta">4&gt;</span><span class="bash"> (1,3,3)</span></span><br><span class="line"><span class="meta">5&gt;</span><span class="bash"> (2,4,2)</span></span><br><span class="line"><span class="meta">6&gt;</span><span class="bash"> (2,3,3)</span></span><br><span class="line"><span class="meta">7&gt;</span><span class="bash"> (4,4,2)</span></span><br><span class="line"><span class="meta">8&gt;</span><span class="bash"> (2,3,3)</span></span><br><span class="line"><span class="meta">9&gt;</span><span class="bash"> (2,4,2)</span></span><br><span class="line"><span class="meta">10&gt;</span><span class="bash"> (2,3,3)</span></span><br><span class="line"></span><br><span class="line">Process finished with exit code 0</span><br></pre></td></tr></table></figure>
+
+
+    </div>
+
+    
+    
+    
+        
+
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>本文作者： </strong>king
+  </li>
+  <li class="post-copyright-link">
+    <strong>本文链接：</strong>
+    <a href="http://yoursite.com/2019/01/29/Flink%E6%B5%81%E5%A4%84%E7%90%86%E4%B9%8B%E8%BF%AD%E4%BB%A3%E6%A1%88%E4%BE%8B/" title="Flink流处理之迭代案例">http://yoursite.com/2019/01/29/Flink流处理之迭代案例/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/flink/" rel="tag"># flink</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2019/01/28/Flink%20Stream%20Windows%20Join/" rel="prev" title="Flink Stream Windows Join">
+      <i class="fa fa-chevron-left"></i> Flink Stream Windows Join
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2019/01/30/hive-udf%E5%87%BD%E6%95%B0/" rel="next" title="hive-udf函数">
+      hive-udf函数 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#eg"><span class="nav-number">1.</span> <span class="nav-text">eg:</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#输出"><span class="nav-number">2.</span> <span class="nav-text">输出</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="king"
+      src="/images/cat.png">
+  <p class="site-author-name" itemprop="name">king</p>
+  <div class="site-description" itemprop="description">诸天气荡荡,我道日兴隆</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives">
+          <span class="site-state-item-count">20</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">15</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/wangshubing1" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;wangshubing1" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:wang_shubing@126.com" title="E-Mail → mailto:wang_shubing@126.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/TXBSW" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;TXBSW" rel="noopener" target="_blank"><i class="copyright fa-fw"></i>CSDN</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.jianshu.com/u/98ab302c7f1a" title="简书 → https:&#x2F;&#x2F;www.jianshu.com&#x2F;u&#x2F;98ab302c7f1a" rel="noopener" target="_blank"><i class="heartbeat fa-fw"></i>简书</a>
+      </span>
+  </div>
+  <div class="cc-license motion-element" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" rel="noopener" target="_blank"><img src="/images/cc-by-nc-sa.svg" alt="Creative Commons"></a>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">king</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/lozad@1/dist/lozad.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

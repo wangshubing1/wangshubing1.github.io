@@ -223,8 +223,1280 @@
   
   
 
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/08/08/StreamSets%20Mongo%20to%20kudu/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/cat.png">
+      <meta itemprop="name" content="king">
+      <meta itemprop="description" content="诸天气荡荡,我道日兴隆">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="诗与远方">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/08/08/StreamSets%20Mongo%20to%20kudu/" class="post-title-link" itemprop="url">Streamsets Mongo to Kudu</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-08-08 10:42:23" itemprop="dateCreated datePublished" datetime="2019-08-08T10:42:23+08:00">2019-08-08</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Streamsets/" itemprop="url" rel="index"><span itemprop="name">Streamsets</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>本次采用Streamsets作为数据管道，将Mongo数据同步至kudu</p>
+<p><img data-src="http://m.qpic.cn/psb?/V13VPBDG4Ve2nJ/vJAit.3xhuTQBg30jh7JIUhKqOr41UAJIJfMHYGQuCo!/b/dMMAAAAAAAAA&bo=6AQeAQAAAAARB8M!&rf=viewer_4" alt="image"></p>
+<h1 id="一-数据起点"><a href="#一-数据起点" class="headerlink" title="一.数据起点"></a>一.数据起点</h1><p><img data-src="http://m.qpic.cn/psb?/V13VPBDG4Ve2nJ/gjQw2cp6byGRIczq3KWcqQ8q2D0ecOnb5d5GSNGUwus!/b/dL8AAAAAAAAA&bo=twACAQAAAAARB4Q!&rf=viewer_4" alt="image"></p>
+<p>从图中我们可以看到关于Mongo的有两个数据起点</p>
+<h2 id="MongoDB"><a href="#MongoDB" class="headerlink" title="MongoDB"></a>MongoDB</h2><p>MongoDB源从MongoDB读取数据.MongoDB源自上限和无上限集合</p>
+<h2 id="MongoDBOplog"><a href="#MongoDBOplog" class="headerlink" title="MongoDBOplog"></a>MongoDBOplog</h2><p>MongoDB Oplog源从MongoDB Oplog读取条目,<br>MongoDB将有关数据库更改的信息存储在名为Oplog的本地上限集合中。Oplog包含有关数据更改以及数据库更改的信息。MongoDB Oplog源可以读取写入Oplog的任何操作。</p>
+<p>使用MongoDB Oplog源来捕获数据或数据库中的更改。要处理写入标准上限或无上限集合的MongoDB数据，请使用MongoDB源</p>
+<p>MongoDB Oplog源包含记录头属性中的CRUD操作类型，因此生成的记录可以由启用CRUD的目标轻松处理</p>
+<p>本次要抽取的两个集合为非上限集合，因为存取的为日志数据无需更新与删除操作故采用MongoDB数据源</p>
+<h3 id="MongoDB连接"><a href="#MongoDB连接" class="headerlink" title="MongoDB连接"></a>MongoDB连接</h3><p><img data-src="http://m.qpic.cn/psb?/V13VPBDG4Ve2nJ/o5RyV9Npq9GQDkB3oWa3kicr.praoylMhRdnxQC0Ybw!/b/dLgAAAAAAAAA&bo=aAXtAgAAAAARB7I!&rf=viewer_4" alt="image"></p>
+<ul>
+<li>单节点连接<figure class="highlight markdown"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mongodb://username:password@host[<span class="string">:port</span>][<span class="symbol">/[database</span>][<span class="string">?options</span>]]</span><br></pre></td></tr></table></figure></li>
+<li>多节点连接</li>
+</ul>
+<figure class="highlight markdown"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mongodb://host1[<span class="string">:port1</span>][<span class="symbol">,host2[:port2</span>],...[<span class="string">,hostN[:portN</span>]]][<span class="string">/[database</span>][<span class="symbol">?options</span>]]</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>详情参阅:<a href="https://streamsets.com/documentation/controlhub/latest/onpremhelp/datacollector/UserGuide/Origins/MongoDB.html#concept_bk4_2rs_ns" target="_blank" rel="noopener">MongoDB 源</a></p>
+</blockquote>
+<h1 id="二-数据转换"><a href="#二-数据转换" class="headerlink" title="二.数据转换"></a>二.数据转换</h1><h2 id="Kafka"><a href="#Kafka" class="headerlink" title="Kafka"></a>Kafka</h2><h3 id="KafkaProducer"><a href="#KafkaProducer" class="headerlink" title="KafkaProducer"></a>KafkaProducer</h3><ul>
+<li>kafka<br><img data-src="http://m.qpic.cn/psb?/V13VPBDG4Ve2nJ/sXpFjBnfcISqZj6S1hEUby2M54aLECrUlwvgt1RlIBQ!/b/dMUAAAAAAAAA&bo=KwW5AQAAAAARB6Y!&rf=viewer_4" alt="image"><br>如图所示<h3 id="KafkaConsumer"><a href="#KafkaConsumer" class="headerlink" title="KafkaConsumer"></a>KafkaConsumer</h3></li>
+<li>kafka<br><img data-src="http://m.qpic.cn/psb?/V13VPBDG4Ve2nJ/8s1om94YpWGJGQRNP26Fedwga7aNQX2oBCFg*qpLEMs!/b/dFIBAAAAAAAA&bo=*gSsAgAAAAARB2Q!&rf=viewer_4" alt="image"></li>
+<li>Dataformat<br><img data-src="http://m.qpic.cn/psb?/V13VPBDG4Ve2nJ/wpiOGabHgTfYrSYdb.Onsh50OUxZQSDcBbGoVmBOfZQ!/b/dL8AAAAAAAAA&bo=.gRJAQAAAAARB4Y!&rf=viewer_4" alt="image"><h2 id="数据转换"><a href="#数据转换" class="headerlink" title="数据转换"></a>数据转换</h2></li>
+</ul>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">    <span class="attr">"_id"</span> : <span class="string">"5c89b9ee2c9d450014bd5aa8"</span>,</span><br><span class="line">    <span class="attr">"_class"</span> : <span class="string">"com.belle.petrel.entity.BehaviourRecord"</span>,</span><br><span class="line">    <span class="attr">"loginName"</span> : <span class="string">"admin"</span>,</span><br><span class="line">    <span class="attr">"userName"</span> : <span class="string">"超级管理员"</span>,</span><br><span class="line">    <span class="attr">"requestURI"</span> : <span class="string">"GET/petrel/petrel-itg-api/sysOrganization/byParams"</span>,</span><br><span class="line">    <span class="attr">"queryParams"</span> : <span class="string">"&#123;\"resCode\":[\"2\"],\"parentId\":[\"0\"]&#125;"</span>,</span><br><span class="line">    <span class="attr">"remoteAddr"</span> : <span class="string">"172.17.225.164"</span>,</span><br><span class="line">    <span class="attr">"userAgent"</span> : <span class="string">"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.109 Safari/537.36"</span>,</span><br><span class="line">    <span class="attr">"operateTime"</span> : <span class="number">1552526382287</span>,</span><br><span class="line">    <span class="attr">"flag"</span> : <span class="string">"1"</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>我采用的是Jython</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> time</span><br><span class="line"><span class="keyword">import</span> datetime</span><br><span class="line"><span class="keyword">for</span> record <span class="keyword">in</span> records:</span><br><span class="line">  operate_smonth = time.strftime(<span class="string">"%Y-%m"</span>, time.localtime(record.value[<span class="string">'operateTime'</span>]/<span class="number">1000</span>))</span><br><span class="line">  operateTimes = time.strftime(<span class="string">"%Y-%m-%d %H:%M:%S"</span>, time.localtime(record.value[<span class="string">'operateTime'</span>]/<span class="number">1000</span>))</span><br><span class="line">  record.value[<span class="string">'operate_smonth'</span>] = operate_smonth</span><br><span class="line">  record.value[<span class="string">'ods_update_time'</span>] = datetime.datetime.now().strftime(<span class="string">"%Y-%m-%d %H:%M:%S"</span>)</span><br><span class="line">  record.value[<span class="string">'operateTime'</span>] = operateTimes</span><br><span class="line">  record.attributes[<span class="string">'sdc.operation.type'</span>]=<span class="string">'4'</span></span><br><span class="line">  record.value[<span class="string">'Type'</span>]=<span class="string">'UPSERT'</span></span><br><span class="line">  <span class="keyword">for</span> key <span class="keyword">in</span> record.value.keys():</span><br><span class="line">	record.value.setdefault(key,<span class="string">''</span>)</span><br><span class="line">  <span class="keyword">try</span>:</span><br><span class="line">    output.write(record)</span><br><span class="line"></span><br><span class="line">  <span class="keyword">except</span> Exception <span class="keyword">as</span> e:</span><br><span class="line">    <span class="comment"># Send record to error</span></span><br><span class="line">    error.write(record, str(e))</span><br></pre></td></tr></table></figure>
+<ul>
+<li>operate_smonth:根据从Mongo传过来的字段operateTime转换得到<blockquote>
+<p>前面我们在KakfaConsumer的kafka配置页中的Auto Offset Reset选项选的是Timestamp,所以到后面的operateTime是时间戳类型，我们需要新增加一个只年月的operate_smonth的字段</p>
+</blockquote>
+</li>
+<li>ods_update_time:kudu的入库时间，截取的是系统当前的时间<h1 id="三-数据落地"><a href="#三-数据落地" class="headerlink" title="三.数据落地"></a>三.数据落地</h1><h2 id="kudu"><a href="#kudu" class="headerlink" title="kudu"></a>kudu</h2><img data-src="http://m.qpic.cn/psb?/V13VPBDG4Ve2nJ/zuYL.UScwtIHtijTDXMxV1XH51PxgL3BGpzTLOLXyEc!/b/dL8AAAAAAAAA&bo=aAWJAQAAAAARB9U!&rf=viewer_4" alt="image"></li>
+</ul>
+<h2 id="kudu建表语句"><a href="#kudu建表语句" class="headerlink" title="kudu建表语句"></a>kudu建表语句</h2><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> p_ods.ods_bas_bhv_menu_record  (</span><br><span class="line">_id <span class="keyword">string</span>  <span class="keyword">comment</span> <span class="string">'mongo_ID'</span>,</span><br><span class="line">operate_smonth <span class="keyword">string</span> <span class="keyword">comment</span> <span class="string">'操作月份'</span>,</span><br><span class="line">_class  <span class="keyword">string</span> <span class="keyword">comment</span> <span class="string">''</span>,</span><br><span class="line">loginName <span class="keyword">string</span> <span class="keyword">comment</span> <span class="string">'登录名'</span>,</span><br><span class="line">userName <span class="keyword">string</span> <span class="keyword">comment</span> <span class="string">'用户名'</span>,</span><br><span class="line">requestURI <span class="keyword">string</span> <span class="keyword">comment</span> <span class="string">'操作URI'</span>,</span><br><span class="line">queryParams <span class="keyword">string</span> <span class="keyword">comment</span> <span class="string">'请求参数'</span>,</span><br><span class="line">remoteAddr <span class="keyword">string</span> <span class="keyword">comment</span> <span class="string">'操作人ip'</span>,</span><br><span class="line">userAgent <span class="keyword">string</span> <span class="keyword">comment</span> <span class="string">'用户系统信息'</span>,</span><br><span class="line">operateTime <span class="keyword">string</span> <span class="keyword">comment</span> <span class="string">'操作时间'</span>,</span><br><span class="line">flag <span class="keyword">string</span> <span class="keyword">comment</span> <span class="string">'是否拆分标记，1-未拆分，2-已拆分'</span>,</span><br><span class="line">ods_update_time <span class="keyword">string</span> <span class="keyword">comment</span> <span class="string">'ods入库时间'</span>,</span><br><span class="line">PRIMARY <span class="keyword">KEY</span> (_id, operate_smonth)</span><br><span class="line">)</span><br><span class="line"><span class="keyword">PARTITION</span> <span class="keyword">BY</span> <span class="keyword">RANGE</span> (operate_smonth) (</span><br><span class="line">    <span class="keyword">PARTITION</span> <span class="keyword">VALUE</span> = <span class="string">'2018-07'</span>,</span><br><span class="line">    <span class="keyword">PARTITION</span> <span class="keyword">VALUE</span> = <span class="string">'2018-08'</span>,</span><br><span class="line">    <span class="keyword">PARTITION</span> <span class="keyword">VALUE</span> = <span class="string">'2018-09'</span>,</span><br><span class="line">    <span class="keyword">PARTITION</span> <span class="keyword">VALUE</span> = <span class="string">'2018-10'</span>,</span><br><span class="line">    <span class="keyword">PARTITION</span> <span class="keyword">VALUE</span> = <span class="string">'2018-11'</span>,</span><br><span class="line">    <span class="keyword">PARTITION</span> <span class="keyword">VALUE</span> = <span class="string">'2018-12'</span>,</span><br><span class="line">    <span class="keyword">PARTITION</span> <span class="keyword">VALUE</span> = <span class="string">'2019-01'</span>,</span><br><span class="line">    <span class="keyword">PARTITION</span> <span class="keyword">VALUE</span> = <span class="string">'2019-02'</span>,</span><br><span class="line">    <span class="keyword">PARTITION</span> <span class="keyword">VALUE</span> = <span class="string">'2019-03'</span>,</span><br><span class="line">    <span class="keyword">PARTITION</span> <span class="keyword">VALUE</span> = <span class="string">'2019-04'</span>,</span><br><span class="line">    <span class="keyword">PARTITION</span> <span class="keyword">VALUE</span> = <span class="string">'2019-05'</span>,</span><br><span class="line">    <span class="keyword">PARTITION</span> <span class="keyword">VALUE</span> = <span class="string">'2019-06'</span>,</span><br><span class="line">    <span class="keyword">PARTITION</span> <span class="keyword">VALUE</span> = <span class="string">'2019-07'</span>,</span><br><span class="line">    <span class="keyword">PARTITION</span> <span class="keyword">VALUE</span> = <span class="string">'2019-08'</span>,</span><br><span class="line">    <span class="keyword">PARTITION</span> <span class="keyword">VALUE</span> = <span class="string">'2019-09'</span>,</span><br><span class="line">    <span class="keyword">PARTITION</span> <span class="keyword">VALUE</span> = <span class="string">'2019-10'</span>,</span><br><span class="line">    <span class="keyword">PARTITION</span> <span class="keyword">VALUE</span> = <span class="string">'2019-11'</span>,</span><br><span class="line">    <span class="keyword">PARTITION</span> <span class="keyword">VALUE</span> = <span class="string">'2019-12'</span></span><br><span class="line">)</span><br><span class="line"><span class="keyword">STORED</span> <span class="keyword">AS</span> KUDU;</span><br></pre></td></tr></table></figure>
+
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/04/10/Hive%20Lock/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/cat.png">
+      <meta itemprop="name" content="king">
+      <meta itemprop="description" content="诸天气荡荡,我道日兴隆">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="诗与远方">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/04/10/Hive%20Lock/" class="post-title-link" itemprop="url">hive lock</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2019-04-10 13:39:38 / 修改时间：14:38:47" itemprop="dateCreated datePublished" datetime="2019-04-10T13:39:38+08:00">2019-04-10</time>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="Hive-Lock"><a href="#Hive-Lock" class="headerlink" title="Hive Lock"></a>Hive Lock</h1><p>hive 目前主要有两种锁，SHARED（共享锁 S）和 Exclusive（排他锁 X）。共享锁 S 和  排他锁 X </p>
+<ul>
+<li>1）查询操作使用共享锁，共享锁是可以多重、并发使用的</li>
+<li>2）修改表操作使用独占锁，它会阻止其他的查询、修改操作</li>
+<li>3）可以对分区使用锁。<br>以下情况会触发锁，以及它的类型和锁定范围如下：</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>Hive Command</th>
+<th>Locks Acquired</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>select .. T1 partition P1</td>
+<td>S on T1, T1.P1</td>
+</tr>
+<tr>
+<td>insert into T2(partition P2) select .. T1 partition P1</td>
+<td>S on T2, T1, T1.P1 and X on T2.P2</td>
+</tr>
+<tr>
+<td>insert into T2(partition P.Q) select .. T1 partition P1</td>
+<td>S on T2, T2.P, T1, T1.P1 and X on T2.P.Q</td>
+</tr>
+<tr>
+<td>alter table T1 rename T2</td>
+<td>X on T1</td>
+</tr>
+<tr>
+<td>alter table T1 add cols</td>
+<td>X on T1</td>
+</tr>
+<tr>
+<td>alter table T1 replace cols</td>
+<td>X on T1</td>
+</tr>
+<tr>
+<td>alter table T1 change cols</td>
+<td>X on T1</td>
+</tr>
+<tr>
+<td>alter table T1 concatenate</td>
+<td>X on T1</td>
+</tr>
+<tr>
+<td>alter table T1 add partition P1</td>
+<td>S on T1, X on T1.P1</td>
+</tr>
+<tr>
+<td>alter table T1 drop partition P1</td>
+<td>S on T1, X on T1.P1</td>
+</tr>
+<tr>
+<td>alter table T1 touch partition P1</td>
+<td>S on T1, X on T1.P1</td>
+</tr>
+<tr>
+<td>alter table T1 set serdeproperties</td>
+<td>S on T1</td>
+</tr>
+<tr>
+<td>alter table T1 set serializer</td>
+<td>S on T1</td>
+</tr>
+<tr>
+<td>alter table T1 set file format</td>
+<td>S on T1</td>
+</tr>
+<tr>
+<td>alter table T1 set tblproperties</td>
+<td>X on T1</td>
+</tr>
+<tr>
+<td>alter table T1 partition P1 concatenate</td>
+<td>X on T1.P1</td>
+</tr>
+<tr>
+<td>drop table T1</td>
+<td>X on T1</td>
+</tr>
+<tr>
+<td>## hive关于锁的配置</td>
+<td></td>
+</tr>
+<tr>
+<td>* hive.support.concurrency</td>
+<td></td>
+</tr>
+<tr>
+<td>默认值： false</td>
+<td></td>
+</tr>
+<tr>
+<td>desc: Hive是否支持并发。一个ZooKeeper的实例必须启动并运行了默认配置单元锁管理器，支持读写锁。</td>
+<td></td>
+</tr>
+<tr>
+<td>设置为  true 支持  INSERT … VALUES，UPDATE和DELETE  事务（Hive 0.14.0及更高版本）。有关打开Hive事务所需参数的完整列表，请参阅  hive.txn.manager。</td>
+<td></td>
+</tr>
+<tr>
+<td>* hive.lock.manager</td>
+<td></td>
+</tr>
+<tr>
+<td>默认值： org.apache.hadoop.hive.ql.lockmgr.zookeeper.ZooKeeperHiveLockManager</td>
+<td></td>
+</tr>
+<tr>
+<td>* hive.lock.mapred.only.operation</td>
+<td></td>
+</tr>
+<tr>
+<td>默认值： false</td>
+<td></td>
+</tr>
+<tr>
+<td>此配置属性用于控制是否仅锁定需要执行至少一个mapred作业的查询。</td>
+<td></td>
+</tr>
+<tr>
+<td>* hive.lock.query.string.max.length</td>
+<td></td>
+</tr>
+<tr>
+<td>默认值：  1000000</td>
+<td></td>
+</tr>
+<tr>
+<td>添加In：Hive 3.0.0</td>
+<td></td>
+</tr>
+<tr>
+<td>要存储在锁中的查询字符串的最大长度。默认值为1000000，因为znode的数据限制为1MB</td>
+<td></td>
+</tr>
+</tbody></table>
+<ul>
+<li><p>hive.lock.numretries<br>默认值： 100<br>您想要尝试获取所有锁的总次数。</p>
+</li>
+<li><p>hive.unlock.numretries<br>默认值： 10<br>您要解锁的总次数。</p>
+</li>
+<li><p>hive.lock.sleep.between.retries<br>默认值： 60<br>各种重试之间的休眠时间（以秒为单位）。</p>
+</li>
+<li><p>hive.zookeeper.quorum<br>默认值:(空）<br>要与之交谈的ZooKeeper服务器列表。只有读/写锁才需要这样做。</p>
+</li>
+<li><p>hive.zookeeper.client.port<br>默认值：2181<br>要与之交谈的ZooKeeper服务器端口。只有读/写锁才需要这样做。</p>
+</li>
+<li><p>hive.zookeeper.session.timeout<br>默认值：<br>Hive 1.2.0及更高版本： 1200000ms（HIVE-8890）<br>ZooKeeper客户端的会话超时（以毫秒为单位）。客户端断开连接，因此，如果超时中未发送心跳，则释放所有锁定。</p>
+</li>
+<li><p>hive.zookeeper.namespace<br>默认值： hive_zookeeper_namespace<br>创建所有ZooKeeper节点的父节点。</p>
+</li>
+<li><p>hive.zookeeper.clean.extra.nodes<br>默认值： false<br>在会话结束时清理额外的节点。</p>
+</li>
+<li><p>hive.lockmgr.zookeeper.default.partition.name<br>默认值： <strong>HIVE_DEFAULT_ZOOKEEPER_PARTITION</strong><br>ZooKeeperHiveLockManager是配置单元锁定管理器时的默认分区名称  。</p>
+<h2 id="hive-commond"><a href="#hive-commond" class="headerlink" title="hive commond"></a>hive commond</h2><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">-- 1）锁表</span></span><br><span class="line">hive&gt; lock table t1 exclusive;</span><br><span class="line"><span class="comment">-- 表被独占锁之后，将不能执行查询操作：</span></span><br><span class="line">hive&gt; SELECT COUNT(*) FROM t1;</span><br><span class="line">conflicting <span class="keyword">lock</span> <span class="keyword">present</span> <span class="keyword">for</span> <span class="keyword">default</span>@people <span class="keyword">mode</span> <span class="keyword">SHARED</span></span><br><span class="line"><span class="keyword">FAILED</span>: <span class="keyword">Error</span> <span class="keyword">in</span> acquiring locks: locks <span class="keyword">on</span> the underlying objects</span><br><span class="line">cannot be acquired. retry <span class="keyword">after</span> <span class="keyword">some</span> <span class="built_in">time</span></span><br><span class="line"><span class="comment">-- 2）解除锁</span></span><br><span class="line">hive&gt; <span class="keyword">unlock</span> <span class="keyword">table</span> t1;</span><br></pre></td></tr></table></figure>
+<p>查询是那个SQL锁Hive表：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">show</span> locks hdp_ubu_zhuanzhuan_defaultdb.token <span class="keyword">extended</span></span><br></pre></td></tr></table></figure></li>
+<li><p>查看有锁的表</p>
+</li>
+</ul>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">show</span> locks;</span><br></pre></td></tr></table></figure>
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/03/19/%E8%AE%B0%E4%B8%80%E6%AC%A1hive%E7%AE%80%E5%8D%95%E6%9F%A5%E8%AF%A2%E6%95%B0%E6%8D%AE%E4%B8%8D%E5%87%86%E7%A1%AE%E6%95%85%E9%9A%9C/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/cat.png">
+      <meta itemprop="name" content="king">
+      <meta itemprop="description" content="诸天气荡荡,我道日兴隆">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="诗与远方">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/03/19/%E8%AE%B0%E4%B8%80%E6%AC%A1hive%E7%AE%80%E5%8D%95%E6%9F%A5%E8%AF%A2%E6%95%B0%E6%8D%AE%E4%B8%8D%E5%87%86%E7%A1%AE%E6%95%85%E9%9A%9C/" class="post-title-link" itemprop="url">hive count(*) count(1) 故障</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2019-03-19 13:23:46 / 修改时间：13:25:42" itemprop="dateCreated datePublished" datetime="2019-03-19T13:23:46+08:00">2019-03-19</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/error/" itemprop="url" rel="index"><span itemprop="name">error</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <ul>
+<li>首先我通过hadoop distcp的命令进行hive的跨集群迁移数据<br>迁移完之后我们查询某一张表的总数</li>
+</ul>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> <span class="keyword">count</span>(*) <span class="keyword">from</span> king_db.test;</span><br></pre></td></tr></table></figure>
+<p>结果：10</p>
+<ul>
+<li>然后我们通过sqoop的增量更新一条数据之后<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> <span class="keyword">count</span>(*) <span class="keyword">from</span> king_db.test;</span><br></pre></td></tr></table></figure>
+结果：10</li>
+</ul>
+<p>问题来了<br>我的数据已经增加了一条，为什么查询结果还是10？<br>为此我们先去看看hdfs里的文件数据是否已经收到</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hadfs dfs -cat /user/hive/warehouse/king_db.db/test/part-0000 wc|-l</span><br></pre></td></tr></table></figure>
+<p>结果：11<br>那么说明我的数据是已经更新过来了，使用impala—shell查询结果同样是11，然后我们又使用了hive</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="keyword">select</span> <span class="keyword">count</span>(<span class="keyword">id</span>) <span class="keyword">from</span> king_db.test;</span><br></pre></td></tr></table></figure>
+<p>结果：11<br>问题出在哪？<br>对hive 查询计划</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">EXPLAIN</span> <span class="keyword">select</span> <span class="keyword">count</span>(*) <span class="keyword">from</span> king_db.test;</span><br></pre></td></tr></table></figure>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">EXPLAIN</span> <span class="keyword">select</span> <span class="keyword">count</span>(<span class="keyword">id</span>) <span class="keyword">from</span> king_db.test;</span><br></pre></td></tr></table></figure>
+<p>此时发现原因：两次的查询计划不一致，count(id) 查询走的是MR，而Hive哪些查询会执行mr<br>hive 0.10.0为了执行效率考虑，简单的查询，就是只是select，不带count,sum,group by这样的，都不走map/reduce，直接读取hdfs文件进行filter过滤. <br>这样做的好处就是不新开mr任务，执行效率要提高不少，但是不好的地方就是用户界面不友好，有时候数据量大还是要等很长时间，但是又没有任何返回。<br>改这个很简单，在hive-site.xml里面有个配置参数叫<br>hive.fetch.task.conversion<br>将这个参数设置为more，简单查询就不走map/reduce了，设置为minimal，就任何简单select都会走map/reduce</p>
+<p>因为是生产上hive，暂时不能随意更改配置，那么我们的方法就是：<br>使用ANALYZE命令对表重新更新统计信息并重新统计后结果正确，</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hive&gt; analyze table king_db.test compute statistics;</span><br></pre></td></tr></table></figure>
+
+
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/03/06/HBase%E5%91%BD%E4%BB%A4/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/cat.png">
+      <meta itemprop="name" content="king">
+      <meta itemprop="description" content="诸天气荡荡,我道日兴隆">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="诗与远方">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/03/06/HBase%E5%91%BD%E4%BB%A4/" class="post-title-link" itemprop="url">HBase常用命令</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2019-03-06 09:26:04 / 修改时间：09:28:22" itemprop="dateCreated datePublished" datetime="2019-03-06T09:26:04+08:00">2019-03-06</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/HBase/" itemprop="url" rel="index"><span itemprop="name">HBase</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="HBase命令："><a href="#HBase命令：" class="headerlink" title="HBase命令："></a>HBase命令：</h2><h4 id="删除-Ctrl-Back-Space"><a href="#删除-Ctrl-Back-Space" class="headerlink" title="删除 Ctrl+Back Space"></a>删除 Ctrl+Back Space</h4><h3 id="1-create-命令"><a href="#1-create-命令" class="headerlink" title="1). create 命令"></a>1). create 命令</h3><p>创建一个名为wang 具有c1，c2两个列族的表</p>
+<figure class="highlight livecodeserver"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">create</span>  <span class="string">'wang'</span> ,<span class="string">'c1'</span>,<span class="string">'c2'</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="2-list-命令"><a href="#2-list-命令" class="headerlink" title="2). list 命令"></a>2). list 命令</h3><p>查看当前 HBase 中具有哪些表。</p>
+<figure class="highlight less"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="selector-tag">hbase</span>(main)<span class="selector-pseudo">:012</span><span class="selector-pseudo">:0</span>&gt; <span class="selector-tag">list</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="3-describe-命令"><a href="#3-describe-命令" class="headerlink" title="3). describe 命令"></a>3). describe 命令</h3><p>查看表“wang”的构造。</p>
+<figure class="highlight stylus"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="title">hbase</span><span class="params">(main)</span></span>:<span class="number">012</span>:<span class="number">0</span>&gt; describe <span class="string">'wang'</span></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">&#123;NAME =&gt; <span class="string">'size_v1.0'</span>, <span class="comment">//列族</span></span><br><span class="line">BLOOMFILTER =&gt; <span class="string">'NONE'</span>, <span class="comment">//布隆过滤器</span></span><br><span class="line">VERSIONS =&gt; <span class="string">'3'</span>,<span class="comment">//设置保存的版本数</span></span><br><span class="line">IN_MEMORY =&gt;<span class="string">'false'</span>,<span class="comment">//设置激进缓存，优先考虑将该列族放入块缓存中，</span></span><br><span class="line"> <span class="comment">//针对随机读操作相对较多的列族可以设置该属性为true</span></span><br><span class="line">KEEP_DELETED_CELLS =&gt; <span class="string">'FALSE'</span>,<span class="comment">//参见：http://hbase.apache.org/book.html#cf.keep.deleted</span></span><br><span class="line">DATA_BLOCK_ENCODING =&gt; <span class="string">'NONE'</span>,<span class="comment">//数据块编码方式设置</span></span><br><span class="line">COMPRESSION =&gt; <span class="string">'NONE'</span>,<span class="comment">//设置压缩算法</span></span><br><span class="line">TTL =&gt; <span class="string">'FOREVER'</span>, <span class="comment">//参见：http://hbase.apache.org/book.html#ttl</span></span><br><span class="line">MIN_VERSIONS =&gt; <span class="string">'0'</span>,<span class="comment">//最小存储版本数</span></span><br><span class="line">BLOCKCACHE =&gt; <span class="string">'false'</span>, <span class="comment">//数据块缓存属性</span></span><br><span class="line">BLOCKSIZE =&gt; <span class="string">'65536'</span>, <span class="comment">//设置HFile数据块大小（默认64kb）</span></span><br><span class="line">REPLICATION_SCOPE =&gt; <span class="string">'0'</span><span class="comment">//配置HBase集群replication时需要将该参数设置为1.</span></span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="4-put-命令"><a href="#4-put-命令" class="headerlink" title="4). put 命令"></a>4). put 命令</h3><p>使用 put 命令向表中插入数据,参数分别为表名、行名、列名和值,其中列名前需要列族最为前缀,时间戳由系统自动生成。<br>格式: put 表名,行名,列名([列族:列名]),值<br>例子：</p>
+<h5 id="a-加入一行数据-行名称为“xiapi”-列族“c1”的列名为”-空字符串-”-值位-1。"><a href="#a-加入一行数据-行名称为“xiapi”-列族“c1”的列名为”-空字符串-”-值位-1。" class="headerlink" title="a. 加入一行数据,行名称为“xiapi”,列族“c1”的列名为”(空字符串)”,值位 1。"></a>a. 加入一行数据,行名称为“xiapi”,列族“c1”的列名为”(空字符串)”,值位 1。</h5><figure class="highlight stylus"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="title">hbase</span><span class="params">(main)</span></span>:<span class="number">012</span>:<span class="number">0</span>&gt; put <span class="string">'wang'</span>, <span class="string">'xiapi'</span>, <span class="string">'c1:'</span>, <span class="string">'1'</span></span><br><span class="line"><span class="function"><span class="title">hbase</span><span class="params">(main)</span></span>:<span class="number">012</span>:<span class="number">0</span>&gt; put <span class="string">'wang'</span>, <span class="string">'xiapi'</span>, <span class="string">'c1:'</span>, <span class="string">'2'</span></span><br></pre></td></tr></table></figure>
+<p> –修改操作(update)</p>
+<h5 id="b-给“xiapi”这一行的数据的列族“c2”添加一列“-lt-china-97-gt-”。"><a href="#b-给“xiapi”这一行的数据的列族“c2”添加一列“-lt-china-97-gt-”。" class="headerlink" title="b. 给“xiapi”这一行的数据的列族“c2”添加一列“&lt;china,97&gt;”。"></a>b. 给“xiapi”这一行的数据的列族“c2”添加一列“&lt;china,97&gt;”。</h5><figure class="highlight stylus"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="title">hbase</span><span class="params">(main)</span></span>:<span class="number">012</span>:<span class="number">0</span>&gt; put <span class="string">'wang'</span>, <span class="string">'xiapi'</span>,  <span class="string">'c2:china'</span>, <span class="string">'97'</span></span><br><span class="line"><span class="function"><span class="title">hbase</span><span class="params">(main)</span></span>:<span class="number">012</span>:<span class="number">0</span>&gt; put <span class="string">'wang'</span>, <span class="string">'xiapi'</span>,  <span class="string">'c2:math'</span>, <span class="string">'128'</span></span><br><span class="line"><span class="function"><span class="title">hbase</span><span class="params">(main)</span></span>:<span class="number">012</span>:<span class="number">0</span>&gt; put <span class="string">'wang'</span>, <span class="string">'xiapi'</span>,  <span class="string">'c2:english'</span>, <span class="string">'85'</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="5-get-命令"><a href="#5-get-命令" class="headerlink" title="5). get 命令"></a>5). get 命令</h3><h5 id="a-查看表“wang”中的行“xiapi”的相关数据。"><a href="#a-查看表“wang”中的行“xiapi”的相关数据。" class="headerlink" title="a.查看表“wang”中的行“xiapi”的相关数据。"></a>a.查看表“wang”中的行“xiapi”的相关数据。</h5><figure class="highlight stylus"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="title">hbase</span><span class="params">(main)</span></span>:<span class="number">012</span>:<span class="number">0</span>&gt; get <span class="string">'wang'</span>, <span class="string">'xiapi'</span></span><br></pre></td></tr></table></figure>
+
+<h5 id="b-查看表“wang”中行“xiapi”列“c2-math”的值。"><a href="#b-查看表“wang”中行“xiapi”列“c2-math”的值。" class="headerlink" title="b.查看表“wang”中行“xiapi”列“c2 :math”的值。"></a>b.查看表“wang”中行“xiapi”列“c2 :math”的值。</h5><figure class="highlight stylus"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="title">hbase</span><span class="params">(main)</span></span>:<span class="number">012</span>:<span class="number">0</span>&gt; get <span class="string">'wang'</span>, <span class="string">'xiapi'</span>, <span class="string">'c2:math'</span></span><br></pre></td></tr></table></figure>
+
+<p>或者</p>
+<figure class="highlight routeros"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">hbase(main):012:0&gt; <span class="builtin-name">get</span> <span class="string">'wang'</span>, <span class="string">'xiapi'</span>, &#123;<span class="attribute">COLUMN</span>=&gt;'c2:math'&#125;</span><br><span class="line">hbase(main):012:0&gt; <span class="builtin-name">get</span> <span class="string">'wang'</span>, <span class="string">'xiapi'</span>, &#123;<span class="attribute">COLUMNS</span>=&gt;'c2:math'&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>备注:COLUMN 和 COLUMNS 是不同的,scan 操作中的 COLUMNS 指定的是表的列族, get操作中的 COLUMN 指定的是特定的列,COLUMNS 的值实质上为“列族:列修饰符”。COLUMN 和 COLUMNS 必须为大写。</p>
+</blockquote>
+<h3 id="6-scan-命令"><a href="#6-scan-命令" class="headerlink" title="6). scan 命令"></a>6). scan 命令</h3><h5 id="a-查看表“scores”中的所有数据。"><a href="#a-查看表“scores”中的所有数据。" class="headerlink" title="a. 查看表“scores”中的所有数据。"></a>a. 查看表“scores”中的所有数据。</h5><figure class="highlight stylus"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="title">hbase</span><span class="params">(main)</span></span>:<span class="number">012</span>:<span class="number">0</span>&gt; scan <span class="string">'wang'</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>注意:<br>scan 命令可以指定 startrow,stoprow 来 scan 多个 row。<br>例如:</p>
+</blockquote>
+<figure class="highlight routeros"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">scan <span class="string">'wang'</span> ,&#123;<span class="attribute">LIMIT</span>=&gt;1&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight typescript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">scan <span class="string">'wang'</span>,&#123;<span class="function"><span class="params">COLUMNS</span> =&gt;</span><span class="string">'c2:sb'</span>,<span class="function"><span class="params">LIMIT</span> =&gt;</span><span class="number">10</span>, <span class="function"><span class="params">STARTROW</span> =&gt;</span> <span class="string">'1'</span>, <span class="function"><span class="params">STOPROW</span>=&gt;</span><span class="string">'3'</span>&#125;</span><br></pre></td></tr></table></figure>
+<h5 id="b-查看表wang”中列族“c2”的所有数据。"><a href="#b-查看表wang”中列族“c2”的所有数据。" class="headerlink" title="b.查看表wang”中列族“c2”的所有数据。"></a>b.查看表wang”中列族“c2”的所有数据。</h5><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">hbase(main):012:0&gt; scan  'wang', &#123;COLUMN =&gt; 'c1'&#125;</span><br><span class="line">hbase(main):012:0&gt; scan  'wang', &#123;COLUMN=&gt;'c2:math'&#125;</span><br><span class="line">hbase(main):012:0&gt; scan  'wang', &#123;COLUMNS =&gt; 'c2'&#125;</span><br><span class="line">hbase(main):012:0&gt; scan  'wang', &#123;COLUMNS =&gt; 'c2'&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="7-count-命令-统计row个数"><a href="#7-count-命令-统计row个数" class="headerlink" title="7). count 命令(统计row个数)"></a>7). count 命令(统计row个数)</h3><figure class="highlight stylus"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="title">hbase</span><span class="params">(main)</span></span>:<span class="number">068</span>:<span class="number">0</span>&gt; count <span class="string">'wang'</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="8-exists-命令（查看表是否存在）"><a href="#8-exists-命令（查看表是否存在）" class="headerlink" title="8). exists 命令（查看表是否存在）"></a>8). exists 命令（查看表是否存在）</h3><figure class="highlight stylus"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="title">hbase</span><span class="params">(main)</span></span>:<span class="number">071</span>:<span class="number">0</span>&gt; exists <span class="string">'wang'</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="9-incr-命令-赋值"><a href="#9-incr-命令-赋值" class="headerlink" title="9). incr 命令(赋值)"></a>9). incr 命令(赋值)</h3><h3 id="10-delete-命令"><a href="#10-delete-命令" class="headerlink" title="10). delete 命令"></a>10). delete 命令</h3><p>删除表“wang”中行为“db”, 列族“c2”中的“757”。</p>
+<figure class="highlight stylus"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="title">hbase</span><span class="params">(main)</span></span>:<span class="number">012</span>:<span class="number">0</span>&gt;  delete <span class="string">'wang'</span>, <span class="string">'db'</span>, <span class="string">'c2:757'</span></span><br></pre></td></tr></table></figure>
+
+<p>删除整行 </p>
+<figure class="highlight stylus"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="title">hbase</span><span class="params">(main)</span></span>:<span class="number">024</span>:<span class="number">0</span>&gt; deleteall <span class="string">'wang'</span>,<span class="string">'3'</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="11-truncate-命令（将整张表清空）"><a href="#11-truncate-命令（将整张表清空）" class="headerlink" title="11). truncate 命令（将整张表清空）"></a>11). truncate 命令（将整张表清空）</h3><figure class="highlight stylus"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="title">hbase</span><span class="params">(main)</span></span>:<span class="number">012</span>:<span class="number">0</span>&gt;  truncate <span class="string">'wang'</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="12-disbale、drop-命令"><a href="#12-disbale、drop-命令" class="headerlink" title="12). disbale、drop 命令"></a>12). disbale、drop 命令</h3><p>通过“disable”和“drop”命令删除“wang”表。</p>
+<figure class="highlight stylus"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="title">hbase</span><span class="params">(main)</span></span>:<span class="number">012</span>:<span class="number">0</span>&gt;  disable <span class="string">'wang'</span> --enable <span class="string">'scores'</span> </span><br><span class="line"><span class="function"><span class="title">hbase</span><span class="params">(main)</span></span>:<span class="number">012</span>:<span class="number">0</span>&gt;  drop <span class="string">'wang'</span></span><br></pre></td></tr></table></figure>
+<p>删除一个列簇            </p>
+<figure class="highlight stylus"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="title">hbase</span><span class="params">(main)</span></span>:<span class="number">007</span>:<span class="number">0</span>&gt; disable <span class="string">'wang'</span></span><br><span class="line"><span class="function"><span class="title">hbase</span><span class="params">(main)</span></span>:<span class="number">009</span>:<span class="number">0</span>&gt; alter <span class="string">'wang'</span>,&#123;NAME=&gt;<span class="string">'db'</span>, METHOD=&gt;<span class="string">'delete'</span>&#125;</span><br><span class="line"><span class="function"><span class="title">hbase</span><span class="params">(main)</span></span>:<span class="number">010</span>:<span class="number">0</span>&gt; enable <span class="string">'wang'</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="13-status命令（查询服务器状态）"><a href="#13-status命令（查询服务器状态）" class="headerlink" title="13).  status命令（查询服务器状态）"></a>13).  status命令（查询服务器状态）</h3><figure class="highlight less"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="selector-tag">hbase</span>(main)<span class="selector-pseudo">:072</span><span class="selector-pseudo">:0</span>&gt; <span class="selector-tag">status</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="14-version命令（查询hbase版本）"><a href="#14-version命令（查询hbase版本）" class="headerlink" title="14).  version命令（查询hbase版本）"></a>14).  version命令（查询hbase版本）</h3><figure class="highlight less"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="selector-tag">hbase</span>(main)<span class="selector-pseudo">:073</span><span class="selector-pseudo">:0</span>&gt; <span class="selector-tag">version</span></span><br></pre></td></tr></table></figure>
+<h3 id="15-count"><a href="#15-count" class="headerlink" title="15) count"></a>15) count</h3><p>统计表的行数</p>
+<figure class="highlight stylus"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="title">hbase</span><span class="params">(main)</span></span>:<span class="number">073</span>:<span class="number">0</span>&gt; count <span class="string">'tablename'</span></span><br></pre></td></tr></table></figure>
+<h3 id="15-alter"><a href="#15-alter" class="headerlink" title="15) alter"></a>15) alter</h3><p>修改列族的最大版本数</p>
+<figure class="highlight awk"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hbase&gt; alte<span class="string">r't1'</span>，NAME =&gt;<span class="string">'f1'</span>，VERSIONS =&gt; <span class="number">5</span></span><br></pre></td></tr></table></figure>
+<p>修改列族的最小版本数</p>
+<figure class="highlight awk"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hbase&gt; alte<span class="string">r't1'</span>，NAME =&gt;<span class="string">'f1'</span>，MIN_VERSIONS =&gt; <span class="number">2</span></span><br></pre></td></tr></table></figure>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/03/05/Hbase%E5%9B%9B%E7%A7%8D%E8%BF%81%E7%A7%BB%E6%96%B9%E6%A1%88/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/cat.png">
+      <meta itemprop="name" content="king">
+      <meta itemprop="description" content="诸天气荡荡,我道日兴隆">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="诗与远方">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/03/05/Hbase%E5%9B%9B%E7%A7%8D%E8%BF%81%E7%A7%BB%E6%96%B9%E6%A1%88/" class="post-title-link" itemprop="url">hbase四种数据迁移方案</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2019-03-05 11:21:31 / 修改时间：14:29:47" itemprop="dateCreated datePublished" datetime="2019-03-05T11:21:31+08:00">2019-03-05</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/HBase/" itemprop="url" rel="index"><span itemprop="name">HBase</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><a href="https://hbase.apache.org/book.html#ops.backup" target="_blank" rel="noopener">官方文档</a></p>
+<p><a href="https://www.cnblogs.com/ballwql/p/hbase_data_transfer.html" target="_blank" rel="noopener">参考文档</a></p>
+<h1 id="1-HDFS层次迁移"><a href="#1-HDFS层次迁移" class="headerlink" title="1. HDFS层次迁移"></a>1. HDFS层次迁移</h1><h2 id="一-完全关机备份"><a href="#一-完全关机备份" class="headerlink" title="一.完全关机备份"></a>一.完全关机备份</h2><p>某些环境可以容忍其HBase群集的定期完全关闭，例如，如果它正在使用后端分析容量而不是服务于前端Web页面。好处是NameNode / Master是RegionServers已关闭，因此没有机会错过对StoreFiles或元数据的任何正在进行的更改。显而易见的是群集已关闭。步骤包括：</p>
+<p>1.停止HBase<br>2.DistCp使用<br>Distcp可用于将HDFS中HBase目录的内容复制到另一个目录中的同一群集，或复制到另一个群集。</p>
+<blockquote>
+<p>注意：Distcp适用于这种情况，因为群集已关闭，并且没有对文件的正在进行的编辑。通常不建议在实时群集上对HBase目录中的文件进行分拣。</p>
+</blockquote>
+<p>3.恢复（如果需要）<br>从HDFS备份hbase目录通过distcp复制到’real’hbase目录。复制这些文件的行为会创建新的HDFS元数据，这就是为什么这种恢复不需要从HBase备份时恢复NameNode的原因，因为它是特定HDFS目录的恢复（通过distcp） （即HBase部分）不是整个HDFS文件系统。</p>
+<h3 id="case1"><a href="#case1" class="headerlink" title="case1"></a>case1</h3><p>Hadoop层数据迁移<br>简单的distcp参数形式如下：</p>
+<figure class="highlight vim"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hadoop distcp hdf<span class="variable">s:</span>//src-hadoop-addres<span class="variable">s:9000</span>/table_name  hdf<span class="variable">s:</span>//dst-hadoop-addres<span class="variable">s:9000</span>/table_name</span><br></pre></td></tr></table></figure>
+<p>如果是独立的MR集群来执行distcp，因为数据量很大，一般是按region目录粒度来传输，同时传输到目标集群时，我们先把文件传到临时目录，最后再目的集群上load表，我们用到的形式如下：</p>
+<figure class="highlight reasonml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">hadoop distcp \</span><br><span class="line">-<span class="module-access"><span class="module"><span class="identifier">Dmapreduce</span>.</span></span>job.name=distcphbase \</span><br><span class="line">-<span class="module-access"><span class="module"><span class="identifier">Dyarn</span>.</span></span>resourcemanager.webapp.address=mr-master-ip:<span class="number">8088</span>  \</span><br><span class="line">-<span class="module-access"><span class="module"><span class="identifier">Dyarn</span>.</span></span>resourcemanager.resource-tracker.address=mr-master-dns:<span class="number">8093</span>   \</span><br><span class="line">-<span class="module-access"><span class="module"><span class="identifier">Dyarn</span>.</span></span>resourcemanager.scheduler.address=mr-master-dns:<span class="number">8091</span>   \</span><br><span class="line">-<span class="module-access"><span class="module"><span class="identifier">Dyarn</span>.</span></span>resourcemanager.address=mr-master-dns:<span class="number">8090</span>  \</span><br><span class="line">-<span class="module-access"><span class="module"><span class="identifier">Dmapreduce</span>.</span></span>jobhistory.<span class="keyword">done</span>-dir=/history/<span class="keyword">done</span>/  \</span><br><span class="line">-<span class="module-access"><span class="module"><span class="identifier">Dmapreduce</span>.</span></span>jobhistory.intermediate-<span class="keyword">done</span>-dir=/history/log/ \</span><br><span class="line">-<span class="module-access"><span class="module"><span class="identifier">Dfs</span>.</span></span>defaultFS=hdfs:<span class="comment">//hbase-fs/ \</span></span><br><span class="line">-<span class="module-access"><span class="module"><span class="identifier">Dfs</span>.</span></span>default.name=hdfs:<span class="comment">//hbase-fs/ \</span></span><br><span class="line">-bandwidth <span class="number">20</span> \</span><br><span class="line">-m <span class="number">20</span> \</span><br><span class="line">hdfs:<span class="comment">//src-hadoop-address:9000/region-hdfs-path \</span></span><br><span class="line">hdfs:<span class="comment">//dst-hadoop-address:9000/tmp/region-hdfs-path</span></span><br></pre></td></tr></table></figure>
+
+<p>在这个过程中，需要注意源端集群到目的端集群策略是通的，同时hadoop/hbase版本也要注意是否一致，如果版本不一致，最终load表时会报错。</p>
+<h4 id="方案实施"><a href="#方案实施" class="headerlink" title="方案实施"></a>方案实施</h4><p>迁移方法如下：</p>
+<h5 id="第一步，"><a href="#第一步，" class="headerlink" title="第一步，"></a>第一步，</h5><p>如果是迁移实时写的表，最好是停止集群对表的写入，迁移历史表的话就不用了，此处举例表名为test;</p>
+<h5 id="第二步，"><a href="#第二步，" class="headerlink" title="第二步，"></a>第二步，</h5><p>flush表， 打开HBase Shell客户端，执行如下命令：</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hbase&gt; <span class="built_in">flush</span> <span class="string">'test'</span></span><br></pre></td></tr></table></figure>
+<h5 id="第三步，"><a href="#第三步，" class="headerlink" title="第三步，"></a>第三步，</h5><p>拷贝表文件到目的路径，检查源集群到目标集群策略、版本等，确认没问题后，执行如上带MR参数的命令</p>
+<h5 id="第四步，"><a href="#第四步，" class="headerlink" title="第四步，"></a>第四步，</h5><p>检查目标集群表是否存在，如果不存在需要创建与原集群相同的表结构</p>
+<h5 id="第五步，"><a href="#第五步，" class="headerlink" title="第五步，"></a>第五步，</h5><p>在目标集群上，Load表到线上，在官方Load是执行如下命令：</p>
+<figure class="highlight stylus"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hbase org<span class="selector-class">.jruby</span><span class="selector-class">.Main</span> add_table<span class="selector-class">.rb</span> /hbase/data/default/test</span><br></pre></td></tr></table></figure>
+
+<p>对于我们来说，因我们先把文件同步到了临时目录，并不在原表目录，所以我们采用的另一种形式的load，即以region的维度来Load数据到线上表，怎么做呢，这里用到的是org.apache.hadoop.hbase.mapreduce.LoadIncrementalHFiles这个类，即以bulkload的形式来load数据。上面同步时我们将文件同步到了目的集群的/tmp/region-hdfs-path目录，那么我们在Load时，可以用如下命令来Load region文件：</p>
+<figure class="highlight stylus"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hbase org<span class="selector-class">.apache</span><span class="selector-class">.hadoop</span><span class="selector-class">.hbase</span><span class="selector-class">.mapreduce</span><span class="selector-class">.LoadIncrementalHFiles</span> -Dhbase<span class="selector-class">.mapreduce</span><span class="selector-class">.bulkload</span><span class="selector-class">.max</span><span class="selector-class">.hfiles</span><span class="selector-class">.perRegion</span>.perFamily=<span class="number">1024</span> hdfs:<span class="comment">//dst-hadoop-address:9000/tmp/region-hdfs-path/region-name   table_name</span></span><br></pre></td></tr></table></figure>
+
+<p>这里还用到一个参数hbase.mapreduce.bulkload.max.hfiles.perRegion.perFamily, 这个表示在bulkload过程中，每个region列族的HFile数的上限，这里我们是限定了1024，也可以指定更少，根据实际需求来定。</p>
+<h5 id="第六步，"><a href="#第六步，" class="headerlink" title="第六步，"></a>第六步，</h5><p>检查表数据是否OK，看bulkload过程是否有报错</p>
+<p>在同步过程中，我们为加块同步速度，还会开个多线程来并发同步文件，这个可根据实际数据量和文件数来决定是否需要使用并发同步。</p>
+<h2 id="二-实时群集备份-复制"><a href="#二-实时群集备份-复制" class="headerlink" title="二.实时群集备份 - 复制"></a>二.实时群集备份 - 复制</h2><h1 id="2-实时群集备份-CopyTable"><a href="#2-实时群集备份-CopyTable" class="headerlink" title="2.实时群集备份 - CopyTable"></a>2.实时群集备份 - CopyTable</h1><p>可复制实用程序可用于将数据从一个表复制到同一个集群上的另一个表，也可以将数据复制到另一个集群上的另一个表。</p>
+<p>由于群集已启动，因此存在复制过程中可能遗漏编辑的风险。</p>
+<p>copyTable也是属于HBase数据迁移的工具之一，以表级别进行数据迁移。copyTable的本质也是利用MapReduce进行同步的，与DistCp不同的时，它是利用MR去scan 原表的数据，然后把scan出来的数据写入到目标集群的表。这种方式也有很多局限，如一个表数据量达到T级，同时又在读写的情况下，全量scan表无疑会对集群性能造成影响。<br>来看下copyTable的一些使用参数：</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="attribute">Usage</span>: CopyTable [general options] [--starttime=X] [--endtime=Y] [--new.name=NEW] [--peer.adr=ADR] &lt;tablename&gt;</span><br><span class="line"></span><br><span class="line"><span class="attribute">Options:</span></span><br><span class="line"> rs.class     hbase.regionserver.class of the peer cluster</span><br><span class="line">              specify if different from current cluster</span><br><span class="line"> rs.impl      hbase.regionserver.impl of the peer cluster</span><br><span class="line"> startrow     the start row</span><br><span class="line"> stoprow      the stop row</span><br><span class="line"> starttime    beginning of the time range (unixtime in millis)</span><br><span class="line">              without endtime means from starttime to forever</span><br><span class="line"> endtime      end of the time range.  Ignored if no starttime specified.</span><br><span class="line"> versions     number of cell versions to copy</span><br><span class="line"> new.name     new table's name</span><br><span class="line"> peer.adr     Address of the peer cluster given in the format</span><br><span class="line">              hbase.zookeeer.quorum:hbase.zookeeper.client.port:zookeeper.znode.parent</span><br><span class="line"> families     comma-separated list of families to copy</span><br><span class="line">              To copy from cf1 to cf2, give sourceCfName:destCfName. </span><br><span class="line">              To keep the same name, just give "cfName"</span><br><span class="line"> all.cells    also copy delete markers and deleted cells</span><br><span class="line"></span><br><span class="line"><span class="attribute">Args:</span></span><br><span class="line"> tablename    Name of the table to copy</span><br><span class="line"></span><br><span class="line"><span class="attribute">Examples:</span></span><br><span class="line"> To copy 'TestTable' to a cluster that uses replication for a 1 hour window:</span><br><span class="line"> $ bin/hbase org.apache.hadoop.hbase.mapreduce.CopyTable --starttime=1265875194289 --endtime=1265878794289 --peer.adr=server1,server2,server3:2181:/hbase --families=myOldCf:myNewCf,cf2,cf3 TestTable </span><br><span class="line">For performance consider the following general options:</span><br><span class="line">-Dhbase.client.scanner.caching=100</span><br><span class="line">-Dmapred.map.tasks.speculative.execution=false</span><br></pre></td></tr></table></figure>
+
+<p>从上面参数，可以看出，copyTable支持设定需要复制的表的时间范围，cell的版本，也可以指定列簇，设定从集群的地址，起始/结束行键等。参数还是很灵活的。copyTable支持如下几个场景：</p>
+<h4 id="1-表深度拷贝："><a href="#1-表深度拷贝：" class="headerlink" title="1.表深度拷贝："></a>1.表深度拷贝：</h4><p>相当于一个快照，不过这个快照是包含原表实际数据的，0.94.x版本之前是不支持snapshot快照命令的，所以用copyTable相当于可以实现对原表的拷贝， 使用方式如下：</p>
+<figure class="highlight stylus"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">create <span class="string">'table_snapshot'</span>,&#123;NAME=&gt;<span class="string">"i"</span>&#125;</span><br><span class="line">hbase org<span class="selector-class">.apache</span><span class="selector-class">.hadoop</span><span class="selector-class">.hbase</span><span class="selector-class">.mapreduce</span><span class="selector-class">.CopyTable</span> --new.name=tableCopy table_snapshot</span><br></pre></td></tr></table></figure>
+<h4 id="2-集群间拷贝："><a href="#2-集群间拷贝：" class="headerlink" title="2.集群间拷贝："></a>2.集群间拷贝：</h4><p>在集群之间以表维度同步一个表数据，使用方式如下：</p>
+<figure class="highlight stylus"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">create <span class="string">'table_test'</span>,&#123;NAME=&gt;<span class="string">"i"</span>&#125;#目的集群上先创建一个与原表结构相同的表</span><br><span class="line">hbase org<span class="selector-class">.apache</span><span class="selector-class">.hadoop</span><span class="selector-class">.hbase</span><span class="selector-class">.mapreduce</span><span class="selector-class">.CopyTable</span> --peer.adr=zk-addr1,zk-addr2,zk-addr3:<span class="number">2181</span>:/hbase table_test</span><br></pre></td></tr></table></figure>
+
+<h4 id="3-增量备份：增量备份表数据，参数中支持timeRange，指定要备份的时间范围，使用方式如下："><a href="#3-增量备份：增量备份表数据，参数中支持timeRange，指定要备份的时间范围，使用方式如下：" class="headerlink" title="3.增量备份：增量备份表数据，参数中支持timeRange，指定要备份的时间范围，使用方式如下："></a>3.增量备份：增量备份表数据，参数中支持timeRange，指定要备份的时间范围，使用方式如下：</h4><figure class="highlight routeros"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hbase org.apache.hadoop.hbase.mapreduce.CopyTable <span class="built_in">..</span>. <span class="attribute">--starttime</span>=start_timestamp <span class="attribute">--endtime</span>=end_timestamp</span><br></pre></td></tr></table></figure>
+
+<h4 id="4-部分表备份：只备份其中某几个列族数据，比如一个表有很多列族，但我只想备份其中几个列族数据，CopyTable提供了families参数，同时还提供了copy列族到新列族形式，使用方式如下："><a href="#4-部分表备份：只备份其中某几个列族数据，比如一个表有很多列族，但我只想备份其中几个列族数据，CopyTable提供了families参数，同时还提供了copy列族到新列族形式，使用方式如下：" class="headerlink" title="4.部分表备份：只备份其中某几个列族数据，比如一个表有很多列族，但我只想备份其中几个列族数据，CopyTable提供了families参数，同时还提供了copy列族到新列族形式，使用方式如下："></a>4.部分表备份：只备份其中某几个列族数据，比如一个表有很多列族，但我只想备份其中几个列族数据，CopyTable提供了families参数，同时还提供了copy列族到新列族形式，使用方式如下：</h4><figure class="highlight stylus"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">hbase org<span class="selector-class">.apache</span><span class="selector-class">.hadoop</span><span class="selector-class">.hbase</span><span class="selector-class">.mapreduce</span><span class="selector-class">.CopyTable</span> ... --families=srcCf1,srcCf2<span class="selector-id">#copy</span> cf1,cf2两个列族，不改变列族名字</span><br><span class="line">hbase org<span class="selector-class">.apache</span><span class="selector-class">.hadoop</span><span class="selector-class">.hbase</span><span class="selector-class">.mapreduce</span><span class="selector-class">.CopyTable</span> ... --families=srcCf1:dstCf1, srcCf2:dstCf2 <span class="selector-id">#copy</span> srcCf1到目标dstCf1新列族</span><br></pre></td></tr></table></figure>
+<p>总的来说，CopyTable支持的范围还是很多的，但因其涉及的是直接HBase层数据的拷贝，所以效率上会很低，同样需要在使用过程中限定扫描原表的速度和传输的带宽，这个工具实际上使用比较少，因为很难控制。</p>
+<h3 id="实时群集备份-导出"><a href="#实时群集备份-导出" class="headerlink" title="实时群集备份 - 导出"></a>实时群集备份 - 导出</h3><p>该出口方式转储表到HDFS在同一个集群上的内容。要恢复数据，将使用导入实用程序。</p>
+<p>由于群集已启动，因此存在导出过程中可能错过编辑的风险。</p>
+<p>此方式与CopyTable类似，主要是将HBase表数据转换成Sequence File并dump到HDFS，也涉及Scan表数据，与CopyTable相比，还多支持不同版本数据的拷贝，同时它拷贝时不是将HBase数据直接Put到目标集群表，而是先转换成文件，把文件同步到目标集群后再通过Import到线上表。主要有两个阶段：</p>
+<p><strong>Export阶段:</strong> 将原集群表数据Scan并转换成Sequence File到Hdfs上，因Export也是依赖于MR的，如果用到独立的MR集群的话，只要保证在MR集群上关于HBase的配置和原集群一样且能和原集群策略打通(master&amp;regionserver策略），就可直接用Export命令，如果没有独立MR集群，则只能在HBase集群上开MR，若需要同步多个版本数据，可以指定versions参数，否则默认同步最新版本的数据，还可以指定数据起始结束时间，使用如下：</p>
+<figure class="highlight dts"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"> <span class="meta">#  output_hdfs_path可以直接是目标集群的hdfs路径，也可以是原集群的HDFS路径，如果需要指定版本号，起始结束时间</span></span><br><span class="line">hbase org.apache.hadoop.hbase.mapreduce.Export <span class="params">&lt;tableName&gt;</span> <span class="params">&lt;ouput_hdfs_path&gt;</span> <span class="params">&lt;versions&gt;</span> <span class="params">&lt;starttime&gt;</span> <span class="params">&lt;endtime&gt;</span></span><br></pre></td></tr></table></figure>
+<p><strong>Import阶段:</strong>　将原集群Export出的SequenceFile导到目标集群对应表，使用如下：</p>
+<figure class="highlight css"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">#如果原数据是存在原集群<span class="selector-tag">HDFS</span>，此处<span class="selector-tag">input_hdfs_path</span>可以是原集群的<span class="selector-tag">HDFS</span>路径，如果原数据存在目标集群<span class="selector-tag">HDFS</span>，则为目标集群的<span class="selector-tag">HDFS</span>路径</span><br><span class="line"><span class="selector-tag">hbase</span> <span class="selector-tag">org</span><span class="selector-class">.apache</span><span class="selector-class">.hadoop</span><span class="selector-class">.hbase</span><span class="selector-class">.mapreduce</span><span class="selector-class">.Import</span> &lt;<span class="selector-tag">tableName</span>&gt; &lt;<span class="selector-tag">input_hdfs_path</span>&gt;</span><br></pre></td></tr></table></figure>
+<h2 id="三-Snapshot方式"><a href="#三-Snapshot方式" class="headerlink" title="三 Snapshot方式"></a>三 Snapshot方式</h2><p>要打开快照支持，只需将该hbase.snapshot.enabled 属性设置为true即可。（默认情况下，快照在0.95+中启用，默认情况下在0.94.6+时关闭）</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">name</span>&gt;</span>hbase.snapshot.enabled<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">value</span>&gt;</span>true<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br></pre></td></tr></table></figure>
+<ul>
+<li>拍一张快照</li>
+</ul>
+<p>无论是启用还是禁用，您都可以创建表的快照。快照操作不涉及任何数据复制。</p>
+<figure class="highlight dockerfile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ ./bin/hbase <span class="keyword">shell</span><span class="bash"> </span></span><br><span class="line">hbase&gt; snapshot <span class="string">'king_test'</span>,<span class="string">'snapshot_king_test'</span></span><br></pre></td></tr></table></figure>
+<ul>
+<li>拍摄快照而不刷新</li>
+</ul>
+<p>默认行为是在拍摄快照之前在内存中执行数据刷新。这意味着内存中的数据包含在快照中。在大多数情况下，这是期望的行为。但是，如果您的设置可以容忍从快照中排除内存中的数据，则可以使用SKIP_FLUSH该snapshot命令的选项在拍摄快照时禁用和刷新。</p>
+<figure class="highlight typescript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hbase&gt; snapshot <span class="string">'king_test'</span>,<span class="string">'snapshot_king_test'</span>,&#123;<span class="function"><span class="params">SKIP_FLUSH</span> =&gt;</span> <span class="literal">true</span>&#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>列出快照</li>
+</ul>
+<figure class="highlight dockerfile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ ./bin/hbase <span class="keyword">shell</span><span class="bash"> </span></span><br><span class="line">hbase&gt; list_snapshots</span><br></pre></td></tr></table></figure>
+<ul>
+<li>删除快照</li>
+</ul>
+<figure class="highlight dockerfile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ ./bin/hbase <span class="keyword">shell</span><span class="bash"> </span></span><br><span class="line">hbase&gt; delete_snapshot <span class="string">'myTableSnapshot-122112'</span></span><br></pre></td></tr></table></figure>
+<ul>
+<li>从快照克隆表<br>从快照中，您可以创建一个新表（克隆操作），其中包含拍摄快照时的相同数据。克隆操作不涉及数据副本，对克隆表的更改不会影响快照或原始表。</li>
+</ul>
+<figure class="highlight dockerfile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ ./bin/hbase <span class="keyword">shell</span><span class="bash"> </span></span><br><span class="line">hbase&gt; clone_snapshot <span class="string">'snapshot_king_test'</span>,<span class="string">'new_king_test'</span></span><br></pre></td></tr></table></figure>
+<ul>
+<li>恢复快照</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">$</span><span class="bash"> ./bin/hbase shell</span></span><br><span class="line"><span class="meta">hbase&gt;</span><span class="bash"> <span class="built_in">disable</span> <span class="string">'king_test'</span></span></span><br><span class="line"><span class="meta">hbase&gt;</span><span class="bash"> restore_snapshot <span class="string">'snapshot_king_test'</span></span></span><br></pre></td></tr></table></figure>
+<ul>
+<li>导出到另一个群集<br>ExportSnapshot工具将与快照（hfiles，日志，快照元数据）相关的所有数据复制到另一个群集。该工具执行类似于distcp的Map-Reduce作业，以在两个集群之间复制文件，并且由于它在文件系统级别工作，因此hbase集群不必在线。</li>
+</ul>
+<p>使用16个映射器将名为MySnapshot的快照复制到HBase集群srv2（hdfs：/// srv2：8082 / hbase）：</p>
+<figure class="highlight stylus"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ bin/hbase org<span class="selector-class">.apache</span><span class="selector-class">.hadoop</span><span class="selector-class">.hbase</span><span class="selector-class">.snapshot</span><span class="selector-class">.ExportSnapshot</span> -snapshot MySnapshot -copy-to hdfs:<span class="comment">//srv2:8082/hbase -mappers 16</span></span><br></pre></td></tr></table></figure>
+<p>限制带宽消耗</p>
+<p>您可以通过指定-bandwidth参数来限制导出快照时的带宽消耗，该参数需要一个表示每秒兆字节数的整数。以下示例将上述示例限制为200 MB /秒。</p>
+<figure class="highlight stylus"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ bin/hbase org<span class="selector-class">.apache</span><span class="selector-class">.hadoop</span><span class="selector-class">.hbase</span><span class="selector-class">.snapshot</span><span class="selector-class">.ExportSnapshot</span> -snapshot MySnapshot -copy-to hdfs:<span class="comment">//srv2:8082/hbase -mappers 16 -bandwidth 200</span></span><br></pre></td></tr></table></figure>
+
+<p>snapshot的流程主要有三个步骤：</p>
+<h4 id="加锁"><a href="#加锁" class="headerlink" title="加锁:"></a>加锁:</h4><p>加锁对象是regionserver的memstore，目的是禁止在创建snapshot过程中对数据进行insert,update,delete操作</p>
+<h4 id="刷盘："><a href="#刷盘：" class="headerlink" title="刷盘："></a>刷盘：</h4><p>刷盘是针对当前还在memstore中的数据刷到HDFS上，保证快照数据相对完整，此步也不是强制的，如果不刷会，快照中数据有不一致风险</p>
+<h4 id="创建指针"><a href="#创建指针" class="headerlink" title="创建指针:"></a>创建指针:</h4><p>snapshot过程不拷贝数据，但会创建对HDFS文件的指针，snapshot中存储的就是这些指标元数据</p>
+<h3 id="snapshot内部原理"><a href="#snapshot内部原理" class="headerlink" title="snapshot内部原理"></a>snapshot内部原理</h3><p>snapshot实际内部是怎么做的呢，上面说到，snapshot只是对元数据信息克隆，不拷贝实际数据文件，我们以表test为例，这个表有三个region, 每个region分别有两个HFile</p>
+<p>创建的snapshot放在目录/hbase/.hbase-snapshot/下， 元数据信息放在/hbase/.hbase-snapshot/data.manifest中， snapshot中也分别包含对原表region HFile的引用，元数据信息具体包括哪哪些呢：</p>
+<figure class="highlight angelscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">1.</span> snapshot元数据信息</span><br><span class="line"><span class="number">2.</span> 表的元数据信息&amp;schema，即原表的.tableinfo文件</span><br><span class="line"><span class="number">3.</span> 对原表Hfile的引用信息</span><br></pre></td></tr></table></figure>
+<p>由于我们表的数据在实时变化，涉及region的Hfile合并删除等操作，对于snapshot而言，这部分数据HBase会怎么处理呢，实际上，当发现spit/compact等操作时，HBase会将原表发生变化的HFile拷贝到/hbase/.archive目录，如上图中如果Region3的F31&amp;F32发生变化，则F31和F32会被同步到.archive目录，这样发生修改的文件数据不至于失效</p>
+<h3 id="snapshot数据迁移"><a href="#snapshot数据迁移" class="headerlink" title="snapshot数据迁移"></a>snapshot数据迁移</h3><p>snapshot的应用场景和上面CopyTable描述差不多，我们这里主要考虑的是数据迁移部分。数据迁移主要有以下几个步骤：</p>
+<h4 id="A-创建快照："><a href="#A-创建快照：" class="headerlink" title="A.创建快照："></a>A.创建快照：</h4><p>在原集群上，用snapshot命令创建快照，命令如下：</p>
+<figure class="highlight mel"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hbase&gt; <span class="keyword">snapshot</span> <span class="string">'king_test'</span>, <span class="string">'snapshot_king_test'</span></span><br></pre></td></tr></table></figure>
+<p>创建完快照后在/hbase根目录会产生一个目录：</p>
+<figure class="highlight awk"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="regexp">/hbase/</span>.hbase-snapshot<span class="regexp">/snapshot_king_test</span></span><br></pre></td></tr></table></figure>
+
+<p>#子目录下有如下几个文件</p>
+<figure class="highlight awk"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="regexp">/hbase/</span>.hbase-snapshot<span class="regexp">/ssnapshot_king_test/</span>.snapshotinfo  </span><br><span class="line"><span class="regexp">/hbase/</span>.hbase-snapshot<span class="regexp">/ssnapshot_king_test/</span>data.manifest</span><br></pre></td></tr></table></figure>
+
+<h4 id="B-数据迁移"><a href="#B-数据迁移" class="headerlink" title="B.数据迁移:"></a>B.数据迁移:</h4><p>在上面创建好快照后，使用ExportSnapshot命令进行数据迁移，ExportSnapshot也是HDFS层的操作，本质还是利用MR进行迁移，这个过程主要涉及IO操作并消耗网络带宽，在迁移时要指定下map数和带宽，不然容易造成机房其它业务问题，如果是单独的MR集群，可以在MR集群上使用如下命令：</p>
+<figure class="highlight ebnf"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="attribute">sudo su - hbase</span></span><br></pre></td></tr></table></figure>
+<p>以下命令需要hbase账户执行</p>
+<figure class="highlight haml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">hbase org.apache.hadoop.hbase.snapshot.ExportSnapshot \</span><br><span class="line">-<span class="ruby">snapshot snapshot_king_test \</span></span><br><span class="line"><span class="ruby">-copy-from <span class="symbol">hdfs:</span>/<span class="regexp">/172.20.32.134:8020/hbase</span> \</span></span><br><span class="line"><span class="ruby">-copy-to <span class="symbol">hdfs:</span>/<span class="regexp">/172.17.194.18:8020/hbase</span> \</span></span><br><span class="line"><span class="ruby">-mappers <span class="number">20</span> \</span></span><br><span class="line"><span class="ruby">-bandwidth <span class="number">20</span></span></span><br></pre></td></tr></table></figure>
+<p>目标集群</p>
+<figure class="highlight elixir"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable">$ </span>bin/hbase</span><br><span class="line">clone_snapshot <span class="string">'snapshot_king_test'</span>,<span class="string">'king_test'</span></span><br></pre></td></tr></table></figure>
+
+<p>上面这些流程网上很多资料都有提到，对于我们业务来说，还有一种场景是要同步的表是正在实时写的，虽然用上面的也可以解决，但考虑到我们表数据规模很大，几十个T级别，同时又有实时业务在查的情况下，直接在原表上就算只是拷贝HFile，也会影响原集群机器性能，由于我们机器性能IO/内存方面本身就比较差，很容易导致机器异常，所以我们采用的其它一种方案，</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/03/04/hbase%20import%20export/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/cat.png">
+      <meta itemprop="name" content="king">
+      <meta itemprop="description" content="诸天气荡荡,我道日兴隆">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="诗与远方">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/03/04/hbase%20import%20export/" class="post-title-link" itemprop="url">hbase 导入导出-export import</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-03-04 20:43:38" itemprop="dateCreated datePublished" datetime="2019-03-04T20:43:38+08:00">2019-03-04</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2019-03-06 09:30:56" itemprop="dateModified" datetime="2019-03-06T09:30:56+08:00">2019-03-06</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/HBase/" itemprop="url" rel="index"><span itemprop="name">HBase</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="Export"><a href="#Export" class="headerlink" title="Export"></a>Export</h2><p>源端</p>
+<figure class="highlight css"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="selector-tag">hbase</span> <span class="selector-tag">org</span><span class="selector-class">.apache</span><span class="selector-class">.hadoop</span><span class="selector-class">.hbase</span><span class="selector-class">.mapreduce</span><span class="selector-class">.Export</span> <span class="selector-tag">TableName</span> <span class="selector-tag">OutputPath</span></span><br></pre></td></tr></table></figure>
+
+<p>以表’wang’为例</p>
+<figure class="highlight stylus"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[hbase@dn012005 ~]$ hdfs dfs -mkdir /hbase/export_wang</span><br><span class="line">[hbase@dn012005 ~]$ hbase org<span class="selector-class">.apache</span><span class="selector-class">.hadoop</span><span class="selector-class">.hbase</span><span class="selector-class">.mapreduce</span><span class="selector-class">.Export</span> wang hdfs:<span class="comment">//nn012018:9000/hbase/export_wang</span></span><br></pre></td></tr></table></figure>
+<h2 id="Import"><a href="#Import" class="headerlink" title="Import"></a>Import</h2><p>目标端</p>
+<figure class="highlight css"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="selector-tag">hbase</span> <span class="selector-tag">org</span><span class="selector-class">.apache</span><span class="selector-class">.hadoop</span><span class="selector-class">.hbase</span><span class="selector-class">.mapreduce</span><span class="selector-class">.Import</span> <span class="selector-tag">TableName</span> <span class="selector-tag">InputPath</span></span><br></pre></td></tr></table></figure>
+<p>以表’wang’为例</p>
+<figure class="highlight stylus"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">wang.sb@belle<span class="selector-class">.lan</span>:/home/wang.sb]$ hbase shell</span><br><span class="line"><span class="function"><span class="title">hbase</span><span class="params">(main)</span></span>:<span class="number">013</span>:<span class="number">0</span>&gt; create <span class="string">'wang'</span>,<span class="string">'f1'</span>,<span class="string">'f2'</span></span><br><span class="line">wang.sb@belle<span class="selector-class">.lan</span>:/home/wang.sb]$ hbase org<span class="selector-class">.apache</span><span class="selector-class">.hadoop</span><span class="selector-class">.hbase</span><span class="selector-class">.mapreduce</span><span class="selector-class">.Import</span> ShopSkuRecommends_Result hdfs:<span class="comment">//10.24.20.2:8020/user/wang.sb/hbase/import_wang/*</span></span><br></pre></td></tr></table></figure>
+<h2 id="附注"><a href="#附注" class="headerlink" title="附注"></a>附注</h2><h3 id="hdfs命令："><a href="#hdfs命令：" class="headerlink" title="hdfs命令："></a>hdfs命令：</h3><ul>
+<li>hdfs 删除文件夹</li>
+</ul>
+<figure class="highlight awk"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hdfs dfs -rm  -r <span class="regexp">/user/</span>wang.sb<span class="regexp">/hbase/im</span>port_wang</span><br></pre></td></tr></table></figure>
+<ul>
+<li>hdfs 上传文件至hdfs</li>
+</ul>
+<figure class="highlight applescript"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hdfs dfs -<span class="keyword">put</span> 本地路径 hdfs路径</span><br></pre></td></tr></table></figure>
+<figure class="highlight awk"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hdfs dfs -put <span class="regexp">/home/</span>wang.sb<span class="regexp">/hbase/im</span>port_wang<span class="regexp">/* /u</span>ser<span class="regexp">/wang.sb/</span>hbase<span class="regexp">/import_wang</span></span><br></pre></td></tr></table></figure>
+<ul>
+<li>hdfs 创建文件夹</li>
+</ul>
+<figure class="highlight awk"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hdfs dfs -mkdir -p <span class="regexp">/user/</span>wang.sb<span class="regexp">/hbase/im</span>port_wang</span><br></pre></td></tr></table></figure>
+<h3 id="hbase-命令"><a href="#hbase-命令" class="headerlink" title="hbase 命令"></a>hbase 命令</h3><ul>
+<li>查看表结构</li>
+</ul>
+<figure class="highlight stylus"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="title">hbase</span><span class="params">(main)</span></span>:<span class="number">012</span>:<span class="number">0</span>&gt; desc <span class="string">'wang'</span></span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>注意：创建的表结构与导出数据的表结构不同，会报错</p>
+</blockquote>
+<p>eg:<br>源端表结构</p>
+<figure class="highlight puppet"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">hbase(main):014:0&gt; desc <span class="string">'wang'</span></span><br><span class="line">Table old_user is ENABLED           </span><br><span class="line">old_user                            </span><br><span class="line">COLUMN FAMILIES DESCRIPTION         </span><br><span class="line">&#123;NAME =&gt; <span class="string">'cf'</span>, VERSIONS =&gt; <span class="string">'1'</span>, EVICT_BLOCKS_ON_CLOSE =&gt; <span class="string">'false'</span>, NEW_VERSION_BEHAVIOR =&gt; <span class="string">'false'</span>, KEEP_DELETED_CELLS =&gt; <span class="string">'FALSE'</span>, CACHE_DATA_ON_WRITE =&gt; <span class="string">'false'</span>, DATA_BLOCK_ENCODING =&gt; <span class="string">'NONE'</span>, T</span><br><span class="line">TL =&gt; <span class="string">'FOREVER'</span>, MIN_VERSIONS =&gt; <span class="string">'0'</span>, REPLICATION_SCOPE =&gt; <span class="string">'0'</span>, BLOOMFILTER =&gt; <span class="string">'ROW'</span>, CACHE_INDEX_ON_WRITE =&gt; <span class="string">'false'</span>, IN_MEMORY =&gt; <span class="string">'false'</span>, CACHE_BLOOMS_ON_WRITE =&gt; <span class="string">'false'</span>, PREFETCH_BLOCKS_ON_</span><br><span class="line">OPEN =&gt; <span class="string">'false'</span>, COMPRESSION =&gt; <span class="string">'NONE'</span>, BLOCKCACHE =&gt; <span class="string">'true'</span>, BLOCKSIZE =&gt; <span class="string">'65536'</span>&#125;               </span><br><span class="line">1 row(s)</span><br></pre></td></tr></table></figure>
+<p>目标端</p>
+<figure class="highlight stylus"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="title">hbase</span><span class="params">(main)</span></span>:<span class="number">014</span>:<span class="number">0</span>&gt; create <span class="string">'wang'</span>,<span class="string">'cf'</span>,<span class="string">'info'</span></span><br></pre></td></tr></table></figure>
+<p>两端表结构不同是不能迁移数据的</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">&#123;NAME =&gt; <span class="string">'cf'</span>, <span class="comment">//列族</span></span><br><span class="line">BLOOMFILTER =&gt; <span class="string">'NONE'</span>, <span class="comment">//布隆过滤器</span></span><br><span class="line">VERSIONS =&gt; <span class="string">'3'</span>,<span class="comment">//设置保存的版本数</span></span><br><span class="line">IN_MEMORY =&gt;<span class="string">'false'</span>,<span class="comment">//设置激进缓存，优先考虑将该列族放入块缓存中，</span></span><br><span class="line"> <span class="comment">//针对随机读操作相对较多的列族可以设置该属性为true</span></span><br><span class="line">KEEP_DELETED_CELLS =&gt; <span class="string">'FALSE'</span>,<span class="comment">//参见：http://hbase.apache.org/book.html#cf.keep.deleted</span></span><br><span class="line">DATA_BLOCK_ENCODING =&gt; <span class="string">'NONE'</span>,<span class="comment">//数据块编码方式设置</span></span><br><span class="line">COMPRESSION =&gt; <span class="string">'NONE'</span>,<span class="comment">//设置压缩算法</span></span><br><span class="line">TTL =&gt; <span class="string">'FOREVER'</span>, <span class="comment">//参见：http://hbase.apache.org/book.html#ttl</span></span><br><span class="line">MIN_VERSIONS =&gt; <span class="string">'0'</span>,<span class="comment">//最小存储版本数</span></span><br><span class="line">BLOCKCACHE =&gt; <span class="string">'false'</span>, <span class="comment">//数据块缓存属性</span></span><br><span class="line">BLOCKSIZE =&gt; <span class="string">'65536'</span>, <span class="comment">//设置HFile数据块大小（默认64kb）</span></span><br><span class="line">REPLICATION_SCOPE =&gt; <span class="string">'0'</span><span class="comment">//配置HBase集群replication时需要将该参数设置为1.</span></span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/03/01/hive%E8%B7%A8%E9%9B%86%E7%BE%A4%E8%BF%81%E7%A7%BB%E6%95%B0%E6%8D%AE/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/cat.png">
+      <meta itemprop="name" content="king">
+      <meta itemprop="description" content="诸天气荡荡,我道日兴隆">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="诗与远方">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/03/01/hive%E8%B7%A8%E9%9B%86%E7%BE%A4%E8%BF%81%E7%A7%BB%E6%95%B0%E6%8D%AE/" class="post-title-link" itemprop="url">hive跨集群数据迁移</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2019-03-01 16:55:50 / 修改时间：16:57:17" itemprop="dateCreated datePublished" datetime="2019-03-01T16:55:50+08:00">2019-03-01</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/hive/" itemprop="url" rel="index"><span itemprop="name">hive</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h4 id="1-源端查看要传递的表建表语句"><a href="#1-源端查看要传递的表建表语句" class="headerlink" title="1.源端查看要传递的表建表语句"></a>1.源端查看要传递的表建表语句</h4><p>源端hive shell执行</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">show</span> <span class="keyword">create</span> <span class="keyword">table</span> tablename</span><br></pre></td></tr></table></figure>
+<h4 id="2-目标端建表"><a href="#2-目标端建表" class="headerlink" title="2.目标端建表"></a>2.目标端建表</h4><p>目标端hive shell执行</p>
+<p>根据第一步中建表语句建表即可</p>
+<h4 id="3-distcp"><a href="#3-distcp" class="headerlink" title="3.distcp"></a>3.distcp</h4><p>源端shell执行</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hadoop distcp -D ipc.client.fallback-to-simple-auth-allowed=true -i -skipcrccheck -update hdfs://nn012018:9000/hive/warehouse/king_test.db/king_test_table webhdfs://目标端ip:9870/user/hive/warehouse/king_test.db/king_test_table1</span><br></pre></td></tr></table></figure>
+<h4 id="4-目标端加载数据"><a href="#4-目标端加载数据" class="headerlink" title="4.目标端加载数据"></a>4.目标端加载数据</h4><p>目标端hive shell执行</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># hive&gt;  load data inpath 'user/hive/warehouse/king_test.db/king_test_table1' into table king_test_table1;</span></span><br></pre></td></tr></table></figure>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/02/25/oracle%E9%80%9A%E8%BF%87ogg%E4%BC%A0%E9%80%92%E6%95%B0%E6%8D%AE%E5%88%B0kafka/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/cat.png">
+      <meta itemprop="name" content="king">
+      <meta itemprop="description" content="诸天气荡荡,我道日兴隆">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="诗与远方">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/02/25/oracle%E9%80%9A%E8%BF%87ogg%E4%BC%A0%E9%80%92%E6%95%B0%E6%8D%AE%E5%88%B0kafka/" class="post-title-link" itemprop="url">oracle通过ogg传递数据到kafka</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2019-02-25 13:55:39 / 修改时间：14:01:35" itemprop="dateCreated datePublished" datetime="2019-02-25T13:55:39+08:00">2019-02-25</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/OGG/" itemprop="url" rel="index"><span itemprop="name">OGG</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="GoldenGate介绍"><a href="#GoldenGate介绍" class="headerlink" title="GoldenGate介绍"></a>GoldenGate介绍</h2><p>GoldenGate软件是一种基于日志的结构化数据复制软件。GoldenGate 能够实现大量交易数据的实时捕捉、变换和投递，实现源数据库与目标数据库的数据同步，保持亚秒级的数据延迟。</p>
+<p>GoldenGate能够支持多种拓扑结构，包括一对一，一对多，多对一，层叠和双向复制等等。</p>
+<h3 id="GoldenGate基本架构"><a href="#GoldenGate基本架构" class="headerlink" title="GoldenGate基本架构"></a>GoldenGate基本架构</h3><h4 id="Oracle-GoldenGate主要由如下组件组成"><a href="#Oracle-GoldenGate主要由如下组件组成" class="headerlink" title="Oracle GoldenGate主要由如下组件组成"></a>Oracle GoldenGate主要由如下组件组成</h4><ul>
+<li>Extract</li>
+<li>Data pump</li>
+<li>Trails</li>
+<li>Collector</li>
+<li>Replicat</li>
+<li>Manager<h4 id="Oracle-GoldenGate-数据复制过程如下："><a href="#Oracle-GoldenGate-数据复制过程如下：" class="headerlink" title="Oracle GoldenGate 数据复制过程如下："></a>Oracle GoldenGate 数据复制过程如下：</h4></li>
+</ul>
+<p>利用抽取进程(Extract Process)在源端数据库中读取Online Redo Log或者Archive Log，然后进行解析，只提取其中数据的变化信息，比如DML操作——增、删、改操作，将抽取的信息转换为GoldenGate自定义的中间格式存放在队列文件(trail file)中。再利用传输进程将队列文件(trail file)通过TCP/IP传送到目标系统。</p>
+<p>目标端有一个进程叫Server Collector，这个进程接受了从源端传输过来的数据变化信息，把信息缓存到GoldenGate 队列文件(trail file)当中，等待目标端的复制进程读取数据。</p>
+<p>GoldenGate 复制进程(replicat process)从队列文件(trail file)中读取数据变化信息，并创建对应的SQL语句，通过数据库的本地接口执行，提交到目标端数据库，提交成功后更新自己的检查点，记录已经完成复制的位置，数据的复制过程最终完成。</p>
+<h4 id="①-Manager"><a href="#①-Manager" class="headerlink" title="① Manager"></a>① Manager</h4><ul>
+<li><p>顾名思义、Manager进程是Golden Gate中进程的控制进程，用于管理 Extract，Data Pump，Replicat等进程</p>
+</li>
+<li><p>在 Extract、Data Pump、Replicat 进程启动之前，Manager 进程必须先要在源端和目标端启动</p>
+</li>
+<li><p>在整个 Golden Gate 运行期间，它必须保持运行状态</p>
+</li>
+</ul>
+<p>⒈ 监控与启动 GoldenGate 的其它进程</p>
+<p>⒉ 管理 trail 文件及 Reporting<br>在 Windows 系统上，Manager 进程是作为一个服务来启动的，在 Unix 系统下是一个进程</p>
+<h4 id="②-Extract"><a href="#②-Extract" class="headerlink" title="② Extract"></a>② Extract</h4><p>Extract 进程运行在数据库源端上，它是Golden Gate的捕获机制，可以配置Extract 进程来做如下工作：</p>
+<p>⒈ 初始数据装载：对于初始数据装载，Extract 进程直接从源对象中提取数据</p>
+<p>⒉ 同步变化捕获：保持源数据与其它数据集的同步。初始数据同步完成后，Extract 进程捕获源数据的变化；如DML变化、 DDL变化等</p>
+<h4 id="③-Replicat"><a href="#③-Replicat" class="headerlink" title="③ Replicat"></a>③ Replicat</h4><p>Replicat 进程是运行在目标端系统的一个进程，负责读取 Extract 进程提取到的数据（变更的事务或 DDL 变化）并应用到目标数据库</p>
+<p>就像 Extract 进程一样，也可以配置 Replicat 进程来完成如下工作：</p>
+<ol>
+<li>初始化数据装载：对于初始化数据装载，Replicat 进程应用数据到目标对象或者路由它们到一个高速的 Bulk-load 工具上</li>
+<li>数据同步，将 Extract 进程捕获到的提交了的事务应用到目标数据库中<h4 id="④-Collector"><a href="#④-Collector" class="headerlink" title="④ Collector"></a>④ Collector</h4>Collector 是运行在目标端的一个后台进程<br>接收从 TCP/IP网络传输过来的数据库变化，并写到 Trail 文件里动态</li>
+</ol>
+<p>collector：由管理进程自动启动的</p>
+<p>collector 叫做动态</p>
+<p>collector，用户不能与动态 collector 交互</p>
+<p>静态 collector：可以配置成手工运行 collector，这个 collector 就称之为静态 collector</p>
+<h4 id="⑤-Trails"><a href="#⑤-Trails" class="headerlink" title="⑤ Trails"></a>⑤ Trails</h4><p>为了持续地提取与复制数据库变化，GoldenGate 将捕获到的数据变化临时存放在磁盘上的一系列文件中，这些文件就叫做 Trail 文件</p>
+<p>这些文件可以在 source DB 上也可以在目标 DB 上，也可以在中间系统上，这依赖于选择哪种配置情况</p>
+<p>在数据库源端上的叫做 Local Trail 或者 Extract Trail；在目标端的叫做 Remote Trail</p>
+<h4 id="⑥-Data-Pumps"><a href="#⑥-Data-Pumps" class="headerlink" title="⑥ Data Pumps"></a>⑥ Data Pumps</h4><p>Data Pump 是一个配置在源端的辅助的 Extract 机制</p>
+<p>Data Pump 是一个可选组件，如果不配置 Data Pump，那么由 Extract 主进程将数据发送到目标端的 Remote Trail 文件中</p>
+<p>如果配置了 Data Pump，会由 Data Pump将Extract 主进程写好的本地 Trail 文件通过网络发送到目标端的 Remote Trail 文件中</p>
+<p>使用 Data Pump 的好处是：</p>
+<p>⒈ 如果目标端或者网络失败，源端的 Extract 进程不会意外终止</p>
+<p>⒉ 需要在不同的阶段实现数据的过滤或者转换</p>
+<p>⒊ 多个源数据库复制到数据中心</p>
+<p>⒋ 数据需要复制到多个目标数据库</p>
+<h4 id="⑦-Data-source"><a href="#⑦-Data-source" class="headerlink" title="⑦ Data source"></a>⑦ Data source</h4><p>当处理事务的变更数据时，Extract 进程可以从数据库（Oracle, DB2, SQL Server, MySQL等）的事务日志中直接获取</p>
+<p>或从 GoldenGate VAM中获取。通过 VAM，数据库厂商将提供所需的组件，用于 Extract 进程抽取数据的变更</p>
+<h4 id="⑧-Groups"><a href="#⑧-Groups" class="headerlink" title="⑧ Groups"></a>⑧ Groups</h4><p>为了区分一个系统上的多个 Extract 和 Replicat 进程，我们可以定义进程组</p>
+<p>例如：要并行复制不同的数据集，我们可以创建两个 Replicat 组</p>
+<p>一个进程组由一个进程组成（Extract 进程或者 Replicat 进程），一个相应的参数文件，一个 Checkpoint 文件，以及其它与之相关的文件</p>
+<p>如果处理组中的进程是 Replicat 进程，那么处理组还要包含一个 Checkpoint 表</p>
+<h2 id="安装与基本配置"><a href="#安装与基本配置" class="headerlink" title="安装与基本配置"></a>安装与基本配置</h2><h5 id="环境说明"><a href="#环境说明" class="headerlink" title="环境说明"></a>环境说明</h5><p>软件配置 <a href="https://www.oracle.com/technetwork/middleware/goldengate/downloads/index.html" target="_blank" rel="noopener">下载地址</a></p>
+<table>
+<thead>
+<tr>
+<th>角色</th>
+<th>数据存储服务及版本</th>
+<th>OGG版本</th>
+<th>IP</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>源服务器</td>
+<td>OracleRelease11.2.0.4.0</td>
+<td>Oracle GoldenGate 12.2.0.2 for Oracle on Linux x86-64</td>
+<td>xxx.xxx.xxx.xx1</td>
+</tr>
+<tr>
+<td>目标服务器</td>
+<td>cdh6.0.0</td>
+<td>Oracle GoldenGate for Big Data 12.3.2.1.1 on Linux x86-64</td>
+<td>xxx.xxx.xxx.xx2</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>以上源服务器上OGG安装在Oracle用户下，目标服务器上OGG安装在root用户下。</p>
+</blockquote>
+<h3 id="2、源端（Oracle）配置"><a href="#2、源端（Oracle）配置" class="headerlink" title="2、源端（Oracle）配置"></a>2、源端（Oracle）配置</h3><p>注意：源端是安装了oracle的机器，oracle环境变量之前都配置好了</p>
+<h4 id="2-1-解压"><a href="#2-1-解压" class="headerlink" title="2.1 解压"></a>2.1 解压</h4><p>先建立ogg目录</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mkdir -p /opt/ogg</span><br></pre></td></tr></table></figure>
+
+<p>解压后得到一个tar包，再解压这个tar</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">tar xf fbo_ggs_Linux_x64_ora11g_64bit.tar -C /opt/ogg</span><br><span class="line">chown -R oracle:oinstall /opt/ogg</span><br></pre></td></tr></table></figure>
+<p> （使oracle用户有ogg的权限，后面有些需要在oracle用户下执行才能成功</p>
+<h4 id="2-2-配置ogg环境变量"><a href="#2-2-配置ogg环境变量" class="headerlink" title="2.2 配置ogg环境变量"></a>2.2 配置ogg环境变量</h4><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">vim /etc/profile</span><br><span class="line">export OGG_HOME=/opt/ogg</span><br><span class="line">export LD_LIBRARY_PATH=$ORACLE_HOME/lib:/usr/lib</span><br><span class="line">export PATH=$OGG_HOME:$PATH</span><br><span class="line">source /etc/profile</span><br></pre></td></tr></table></figure>
+<h5 id="Oracle打开归档模式"><a href="#Oracle打开归档模式" class="headerlink" title="Oracle打开归档模式"></a>Oracle打开归档模式</h5><p>使用如下命令查看当前是否为归档模式（archive）</p>
+<figure class="highlight pgsql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SQL</span>&gt; archive <span class="keyword">log</span> list </span><br><span class="line"><span class="keyword">Database</span> <span class="keyword">log</span> mode              Archive Mode</span><br><span class="line">Automatic archival             Enabled</span><br><span class="line">Archive destination            /u01/arch_log</span><br><span class="line">Oldest online <span class="keyword">log</span> <span class="keyword">sequence</span>     <span class="number">6</span></span><br><span class="line">Next <span class="keyword">log</span> <span class="keyword">sequence</span> <span class="keyword">to</span> archive   <span class="number">8</span></span><br><span class="line"><span class="keyword">Current</span> <span class="keyword">log</span> <span class="keyword">sequence</span>           <span class="number">8</span></span><br></pre></td></tr></table></figure>
+<p>如非以上状态，手动调整即可</p>
+<figure class="highlight pgsql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SQL</span>&gt; conn / <span class="keyword">as</span> sysdba(以DBA身份连接数据库) </span><br><span class="line"><span class="keyword">SQL</span>&gt; shutdown <span class="keyword">immediate</span>(立即关闭数据库)</span><br><span class="line"><span class="keyword">SQL</span>&gt; startup mount(启动实例并加载数据库，但不打开)</span><br><span class="line"><span class="keyword">SQL</span>&gt; <span class="keyword">alter</span> <span class="keyword">database</span> archivelog(更改数据库为归档模式)</span><br><span class="line"><span class="keyword">SQL</span>&gt; <span class="keyword">alter</span> <span class="keyword">database</span> <span class="keyword">open</span>(打开数据库)</span><br><span class="line"><span class="keyword">SQL</span>&gt; <span class="keyword">alter</span> <span class="keyword">system</span> archive <span class="keyword">log</span> <span class="keyword">start</span>(启用自动归档)</span><br></pre></td></tr></table></figure>
+
+<h5 id="Oracle打开日志相关"><a href="#Oracle打开日志相关" class="headerlink" title="Oracle打开日志相关"></a>Oracle打开日志相关</h5><p>OGG基于辅助日志等进行实时传输，故需要打开相关日志确保可获取事务内容。通过一下命令查看当前状态：</p>
+<figure class="highlight pgsql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SQL</span>&gt; <span class="keyword">select</span> force_logging, supplemental_log_data_min <span class="keyword">from</span> v$<span class="keyword">database</span>;</span><br><span class="line"><span class="keyword">FOR</span> SUPPLEME<span class="comment">--- --------</span></span><br><span class="line">YES YES</span><br></pre></td></tr></table></figure>
+
+<p>如果以上查询结果非YES，可通过以下命令修改状态：</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">SQL&gt; alter database force logging;</span><br><span class="line">SQL&gt; alter database add supplemental log data;</span><br></pre></td></tr></table></figure>
+
+<h5 id="Oracle创建复制用户"><a href="#Oracle创建复制用户" class="headerlink" title="Oracle创建复制用户"></a>Oracle创建复制用户</h5><p>为了使Oracle里用户的复制权限更加单纯，故专门创建复制用户，并赋予dba权限</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">SQL&gt; create tablespaceoggtbsdatafile '/u01/app/oracle/oradata/orcl/oggtbs01.dbf' size 1000M autoextend on;</span><br><span class="line">SQL&gt; create user ggs identified by ggs default tablespaceoggtbs;</span><br><span class="line">User created.</span><br><span class="line">SQL&gt; grant dba to ggs;</span><br><span class="line"><span class="keyword">Grant</span> succeeded.</span><br></pre></td></tr></table></figure>
+
+<p>最终这个ggs帐号的权限如下所示：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">SQL&gt; select * from dba_sys_privs where GRANTEE='GGS';</span><br><span class="line">GRANTEE                        PRIVILEGE                                ADM</span><br><span class="line">GGS                            <span class="keyword">DROP</span> <span class="keyword">ANY</span> <span class="keyword">DIRECTORY</span>                       <span class="keyword">NO</span></span><br><span class="line">GGS                            <span class="keyword">ALTER</span> <span class="keyword">ANY</span> <span class="keyword">TABLE</span>                          <span class="keyword">NO</span></span><br><span class="line">GGS                            <span class="keyword">ALTER</span> <span class="keyword">SESSION</span>                            <span class="keyword">NO</span></span><br><span class="line">GGS                            <span class="keyword">SELECT</span> <span class="keyword">ANY</span> DICTIONARY                    <span class="keyword">NO</span></span><br><span class="line">GGS                            <span class="keyword">CREATE</span> <span class="keyword">ANY</span> <span class="keyword">DIRECTORY</span>                     <span class="keyword">NO</span></span><br><span class="line">GGS                            <span class="keyword">RESTRICTED</span> <span class="keyword">SESSION</span>                       <span class="keyword">NO</span></span><br><span class="line">GGS                            <span class="keyword">FLASHBACK</span> <span class="keyword">ANY</span> <span class="keyword">TABLE</span>                      <span class="keyword">NO</span></span><br><span class="line">GGS                            <span class="keyword">UPDATE</span> <span class="keyword">ANY</span> <span class="keyword">TABLE</span>                         <span class="keyword">NO</span></span><br><span class="line">GGS                            <span class="keyword">DELETE</span> <span class="keyword">ANY</span> <span class="keyword">TABLE</span>                         <span class="keyword">NO</span></span><br><span class="line">GGS                            <span class="keyword">CREATE</span> <span class="keyword">TABLE</span>                             <span class="keyword">NO</span></span><br><span class="line">GGS                            <span class="keyword">INSERT</span> <span class="keyword">ANY</span> <span class="keyword">TABLE</span>                         <span class="keyword">NO</span></span><br><span class="line">GRANTEE                        PRIVILEGE                                ADM</span><br><span class="line">GGS                            <span class="keyword">UNLIMITED</span> <span class="keyword">TABLESPACE</span>                     <span class="keyword">NO</span></span><br><span class="line">GGS                            <span class="keyword">CREATE</span> <span class="keyword">SESSION</span>                           <span class="keyword">NO</span></span><br><span class="line">GGS                            <span class="keyword">SELECT</span> <span class="keyword">ANY</span> <span class="keyword">TABLE</span>                         <span class="keyword">NO</span></span><br></pre></td></tr></table></figure>
+
+<h5 id="OGG初始化"><a href="#OGG初始化" class="headerlink" title="OGG初始化"></a>OGG初始化</h5><p>进入OGG的主目录执行./ggsci，进入OGG命令行</p>
+<figure class="highlight vim"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">[oracle@VM_0_25_centos gg]$ ./ggsci </span><br><span class="line">Oracle GoldenGate Command Interpreter <span class="keyword">for</span> Oracle</span><br><span class="line">Version <span class="number">11.2</span>.<span class="number">1.0</span>.<span class="number">3</span> <span class="number">14400833</span> OGGCORE_11.<span class="number">2.1</span>.<span class="number">0.3</span>_PLATFORMS_120823.<span class="number">1258</span>_FBO</span><br><span class="line">Linux, x64, <span class="number">64</span>bit (optimized), Oracle <span class="number">11</span>g <span class="keyword">on</span> Aug <span class="number">23</span> <span class="number">2012</span> <span class="number">20</span>:<span class="number">20</span>:<span class="number">21</span></span><br><span class="line">Copyright (C) <span class="number">1995</span>, <span class="number">2012</span>, Oracle <span class="built_in">and</span>/<span class="built_in">or</span> its affiliates. All rights reserved.</span><br><span class="line">GGSCI (VM_0_25_centos) <span class="number">1</span>&gt;</span><br><span class="line">执行create subdirs进行目录创建</span><br><span class="line">GGSCI (VM_0_25_centos) <span class="number">4</span>&gt; create subdirs</span><br><span class="line">Creating subdirectories under current directory /u01/gg</span><br><span class="line">Parameter <span class="keyword">files</span>                /<span class="keyword">opt</span>/ogg/dirprm: already <span class="built_in">exists</span></span><br><span class="line">Report <span class="keyword">files</span>                   /<span class="keyword">opt</span>/ogg/dirrp<span class="variable">t:</span> already <span class="built_in">exists</span></span><br><span class="line">Checkpoint <span class="keyword">files</span>               /<span class="keyword">opt</span>/ogg/dirchk: already <span class="built_in">exists</span></span><br><span class="line">Process status <span class="keyword">files</span>           /<span class="keyword">opt</span>/ogg/dirpc<span class="variable">s:</span> already <span class="built_in">exists</span></span><br><span class="line">SQL script <span class="keyword">files</span>               /<span class="keyword">opt</span>/ogg/dirsq<span class="variable">l:</span> already <span class="built_in">exists</span></span><br><span class="line">Database definitions <span class="keyword">files</span>     /<span class="keyword">opt</span>/ogg/dirdef: already <span class="built_in">exists</span></span><br><span class="line">Extract data <span class="keyword">files</span>             /<span class="keyword">opt</span>/ogg/dirda<span class="variable">t:</span> already <span class="built_in">exists</span></span><br><span class="line">Temporary <span class="keyword">files</span>                /<span class="keyword">opt</span>/ogg/dirtmp: already <span class="built_in">exists</span></span><br><span class="line">Stdout <span class="keyword">files</span>                   /<span class="keyword">opt</span>/ogg/dirou<span class="variable">t:</span> already <span class="built_in">exists</span></span><br></pre></td></tr></table></figure>
+
+<h5 id="Oracle创建模拟复制库表"><a href="#Oracle创建模拟复制库表" class="headerlink" title="Oracle创建模拟复制库表"></a>Oracle创建模拟复制库表</h5><p>模拟建一个用户叫tcloud，密码tcloud，同时基于这个用户建一张表，叫t_ogg。</p>
+<figure class="highlight routeros"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">SQL&gt; create<span class="built_in"> user </span>tcloud  identified by tcloud<span class="built_in"> default </span>tablespace users;</span><br><span class="line">User created.</span><br><span class="line">SQL&gt; grant dba <span class="keyword">to</span> tcloud;</span><br><span class="line">Grant succeeded.</span><br><span class="line">SQL&gt; conn tcloud/tcloud;</span><br><span class="line">Connected.</span><br><span class="line">SQL&gt; create table t_ogg(id int ,text_name varchar(20),primary key(id));</span><br><span class="line">Table created.</span><br></pre></td></tr></table></figure>
+<h4 id="配置全局变量"><a href="#配置全局变量" class="headerlink" title="配置全局变量"></a>配置全局变量</h4><p>在源端服务器OGG主目录下，执行./ggsci到OGG命令行下，执行如下命令：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">GGSCI (VM_0_25_centos) 1&gt; dblogin userid ggs password ggs</span><br><span class="line">Successfully logged into database.</span><br><span class="line">GGSCI (VM_0_25_centos) 3&gt; view params ./globals</span><br><span class="line">ggschema ggs</span><br></pre></td></tr></table></figure>
+
+<p>其中./globals变量没有的话可以用edit params ./globals来编辑添加即可（编辑器默认使用的vim）</p>
+<h4 id="配置管理器mgr"><a href="#配置管理器mgr" class="headerlink" title="配置管理器mgr"></a>配置管理器mgr</h4><p>在OGG命令行下执行如下命令：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">GGSCI</span> <span class="string">(VM_0_25_centos)</span> <span class="number">4</span><span class="string">&gt;</span> <span class="string">edit</span> <span class="string">param</span> <span class="string">mgr</span></span><br><span class="line"><span class="string">PORT</span> <span class="number">7809</span></span><br><span class="line"><span class="string">DYNAMICPORTLIST</span> <span class="number">7810</span><span class="number">-7909</span></span><br><span class="line"><span class="string">AUTORESTART</span> <span class="string">EXTRACT</span> <span class="string">*,RETRIES</span> <span class="number">5</span><span class="string">,WAITMINUTES</span> <span class="number">3</span></span><br><span class="line"><span class="string">PURGEOLDEXTRACTS</span> <span class="string">./dirdat/*,usecheckpoints,</span> <span class="string">minkeepdays</span> <span class="number">3</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>说明：PORT即mgr的默认监听端口；DYNAMICPORTLIST动态端口列表，当指定的mgr端口不可用时，会在这个端口列表中选择一个，最大指定范围为256个；AUTORESTART重启参数设置表示重启所有EXTRACT进程，最多5次，每次间隔3分钟；PURGEOLDEXTRACTS即TRAIL文件的定期清理<br>在命令行下执行start mgr即可启动管理进程，通过info mgr可查看mgr状态</p>
+</blockquote>
+<figure class="highlight routeros"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">GGSCI (VM_0_25_centos) 5&gt; <span class="builtin-name">info</span> mgr</span><br><span class="line">Manager is running (IP<span class="built_in"> port </span>VM_0_25_centos.7809).</span><br></pre></td></tr></table></figure>
+
+<h5 id="添加复制表"><a href="#添加复制表" class="headerlink" title="添加复制表"></a>添加复制表</h5><p>在OGG命令行下执行添加需要复制的表的操作，如下：</p>
+<figure class="highlight routeros"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">GGSCI (VM_0_25_centos) 7&gt; <span class="builtin-name">add</span> trandata tcloud.t_ogg</span><br><span class="line">Logging of supplemental redo data enabled <span class="keyword">for</span> table TCLOUD.T_OGG.</span><br><span class="line">GGSCI (VM_0_25_centos) 8&gt; <span class="builtin-name">info</span> trandata tcloud.t_ogg</span><br><span class="line">Logging of supplemental redo log data is enabled <span class="keyword">for</span> table TCLOUD.T_OGG.</span><br><span class="line">Columns supplementally logged <span class="keyword">for</span> table TCLOUD.T_OGG: ID.</span><br></pre></td></tr></table></figure>
+
+<h4 id="配置extract进程"><a href="#配置extract进程" class="headerlink" title="配置extract进程"></a>配置extract进程</h4><p>配置extract进程OGG命令行下执行如下命令：</p>
+<figure class="highlight properties"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">GGSCI</span> <span class="string">(VM_0_25_centos) 10&gt; edit params ext2hd</span></span><br><span class="line"><span class="attr">extract</span> <span class="string">ext2hd</span></span><br><span class="line"><span class="attr">dynamicresolution</span></span><br><span class="line"><span class="attr">SETENV</span> <span class="string">(ORACLE_SID = "orcl")</span></span><br><span class="line"><span class="attr">SETENV</span> <span class="string">(NLS_LANG = "american_america.AL32UTF8")</span></span><br><span class="line"><span class="attr">userid</span> <span class="string">ggs,password ggs</span></span><br><span class="line"><span class="attr">exttrail</span> <span class="string">/u01/gg/dirdat/tc</span></span><br><span class="line"><span class="attr">table</span> <span class="string">tcloud.t_ogg;</span></span><br></pre></td></tr></table></figure>
+
+<p>说明：第一行指定extract进程名称；dynamicresolution动态解析；SETENV设置环境变量，这里分别设置了Oracle数据库以及字符集；userid ggs,password ggs即OGG连接Oracle数据库的帐号密码，这里使用2.3.4中特意创建的复制帐号；exttrail定义trail文件的保存位置以及文件名，注意这里文件名只能是2个字母，其余部分OGG会补齐；table即复制表的表明，支持*通配，必须以;结尾<br>接下来在OGG命令行执行如下命令添加extract进程：</p>
+<figure class="highlight mipsasm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">GGSCI (VM_0_25_centos) <span class="number">11</span>&gt; <span class="keyword">add </span><span class="keyword">extract </span><span class="keyword">ext2hd,tranlog,begin </span>now</span><br><span class="line"><span class="keyword">EXTRACT </span><span class="keyword">added.</span></span><br></pre></td></tr></table></figure>
+
+<p>最后添加trail文件的定义与extract进程绑定：</p>
+<figure class="highlight awk"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">GGSCI (VM_0_25_centos) <span class="number">12</span>&gt; add exttrail <span class="regexp">/u01/gg</span><span class="regexp">/dirdat/</span>tc,extract ext2hd</span><br><span class="line">EXTTRAIL added</span><br></pre></td></tr></table></figure>
+
+<p>可在OGG命令行下通过info命令查看状态：</p>
+<figure class="highlight pgsql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">GGSCI (VM_0_25_centos) <span class="number">14</span>&gt; <span class="keyword">info</span> ext2hd</span><br><span class="line">EXTRACT    EXT2HD    Initialized   <span class="number">2016</span><span class="number">-11</span><span class="number">-09</span> <span class="number">15</span>:<span class="number">37</span>   Status STOPPED</span><br><span class="line"><span class="keyword">Checkpoint</span> Lag       <span class="number">00</span>:<span class="number">00</span>:<span class="number">00</span> (updated <span class="number">00</span>:<span class="number">02</span>:<span class="number">32</span> ago)</span><br><span class="line"><span class="keyword">Log</span> <span class="keyword">Read</span> <span class="keyword">Checkpoint</span>  Oracle Redo Logs</span><br><span class="line">                     <span class="number">2016</span><span class="number">-11</span><span class="number">-09</span> <span class="number">15</span>:<span class="number">37</span>:<span class="number">14</span>  Seqno <span class="number">0</span>, RBA <span class="number">0</span></span><br><span class="line">                     SCN <span class="number">0.0</span> (<span class="number">0</span>)</span><br></pre></td></tr></table></figure>
+
+<h4 id="配置pump进程"><a href="#配置pump进程" class="headerlink" title="配置pump进程"></a>配置pump进程</h4><p>pump进程本质上来说也是一个extract，只不过他的作用仅仅是把trail文件传递到目标端，配置过程和extract进程类似，只是逻辑上称之为pump进程<br>在OGG命令行下执行：</p>
+<figure class="highlight properties"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">GGSCI</span> <span class="string">(VM_0_25_centos) 16&gt; edit params push2hd</span></span><br><span class="line"><span class="attr">extract</span> <span class="string">push2hd</span></span><br><span class="line"><span class="attr">passthru</span></span><br><span class="line"><span class="attr">dynamicresolution</span></span><br><span class="line"><span class="attr">userid</span> <span class="string">ggs,password ggs</span></span><br><span class="line"><span class="attr">rmthost</span> <span class="string">10.0.0.2 mgrport 7809</span></span><br><span class="line"><span class="attr">rmttrail</span> <span class="string">/data/gg/dirdat/tc</span></span><br><span class="line"><span class="attr">table</span> <span class="string">tcloud.t_ogg;</span></span><br></pre></td></tr></table></figure>
+
+<p>说明：第一行指定extract进程名称；passthru即禁止OGG与Oracle交互，我们这里使用pump逻辑传输，故禁止即可；dynamicresolution动态解析；userid ggs,password ggs即OGG连接Oracle数据库的帐号密码，这里使用2.3.4中特意创建的复制帐号；rmthost和mgrhost即目标端OGG的mgr服务的地址以及监听端口；rmttrail即目标端trail文件存储位置以及名称</p>
+<figure class="highlight armasm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">分别将本地trail文件和目标端的trail文件绑定到extract进程：</span><br><span class="line"></span><br><span class="line"><span class="symbol">GGSCI</span> (VM_0_25_centos) <span class="number">17</span>&gt; <span class="keyword">add </span>extract <span class="keyword">push2hd,exttrailsource </span>/u01/gg/dirdat/tc</span><br><span class="line"><span class="symbol">EXTRACT</span> <span class="keyword">added.</span></span><br><span class="line"><span class="keyword">GGSCI </span>(VM_0_25_centos) <span class="number">18</span>&gt; <span class="keyword">add </span>rmttrail /<span class="meta">data</span>/gg/dirdat/tc,extract <span class="keyword">push2hd</span></span><br><span class="line"><span class="keyword">RMTTRAIL </span><span class="keyword">added.</span></span><br></pre></td></tr></table></figure>
+
+<p>同样可以在OGG命令行下使用info查看进程状态：</p>
+<figure class="highlight pgsql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">GGSCI (VM_0_25_centos) <span class="number">19</span>&gt; <span class="keyword">info</span> push2hd</span><br><span class="line"></span><br><span class="line">EXTRACT    PUSH2HD   Initialized   <span class="number">2016</span><span class="number">-11</span><span class="number">-09</span> <span class="number">15</span>:<span class="number">52</span>   Status STOPPED</span><br><span class="line"><span class="keyword">Checkpoint</span> Lag       <span class="number">00</span>:<span class="number">00</span>:<span class="number">00</span> (updated <span class="number">00</span>:<span class="number">01</span>:<span class="number">04</span> ago)</span><br><span class="line"><span class="keyword">Log</span> <span class="keyword">Read</span> <span class="keyword">Checkpoint</span>  File /u01/gg/dirdat/tc000000</span><br><span class="line">                     First <span class="type">Record</span>  RBA <span class="number">0</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="配置define文件"><a href="#配置define文件" class="headerlink" title="配置define文件"></a>配置define文件</h4><p>Oracle与MySQL，Hadoop集群（HDFS，Hive，kafka等）等之间数据传输可以定义为异构数据类型的传输，故需要定义表之间的关系映射，在OGG命令行执行：</p>
+<figure class="highlight properties"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">GGSCI</span> <span class="string">(VM_0_25_centos) 20&gt; edit params tcloud</span></span><br><span class="line"><span class="attr">defsfile</span> <span class="string">/u01/gg/dirdef/tcloud.t_ogg</span></span><br><span class="line"><span class="attr">userid</span> <span class="string">ggs,password ggs</span></span><br><span class="line"><span class="attr">table</span> <span class="string">tcloud.t_ogg;</span></span><br></pre></td></tr></table></figure>
+
+<p>在OGG主目录下执行：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./defgen paramfile dirprm/tcloud.prm</span><br></pre></td></tr></table></figure>
+
+<p>完成之后会生成这样的文件/opt/ogg/dirdef/tcloud.t_ogg，将这个文件拷贝到目标端的OGG主目录下的dirdef目录即可。</p>
+<h3 id="目标端的配置"><a href="#目标端的配置" class="headerlink" title="目标端的配置"></a>目标端的配置</h3><p>环境变量配置<br>vim /etc/profile</p>
+<figure class="highlight routeros"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#for ogg</span></span><br><span class="line"><span class="builtin-name">export</span> <span class="attribute">OGG_HOME</span>=/opt/ogg</span><br><span class="line"><span class="builtin-name">export</span> <span class="attribute">LD_LIBRARY_PATH</span>=<span class="variable">$JAVA_HOME</span>/jre/lib/amd64:$JAVA_HOME/jre/lib/amd64/server:$JAVA_HOME/jre/lib/amd64/libjsig.so:$JAVA_HOME/jre/lib/amd64/server/libjvm.so:$OGG_HOME/lib</span><br><span class="line"><span class="builtin-name">export</span> <span class="attribute">PATH</span>=<span class="variable">$OGG_HOME</span>:$PATH</span><br></pre></td></tr></table></figure>
+<h3 id="OGG初始化-1"><a href="#OGG初始化-1" class="headerlink" title="OGG初始化"></a>OGG初始化</h3><figure class="highlight angelscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"># ggsci</span><br><span class="line">GGSCI (dev-cdh<span class="number">-002</span>v) <span class="number">1</span>&gt; create subdirs</span><br></pre></td></tr></table></figure>
+<h4 id="配置管理器manager"><a href="#配置管理器manager" class="headerlink" title="配置管理器manager"></a>配置管理器manager</h4><figure class="highlight angelscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">GGSCI (dev-cdh<span class="number">-002</span>v) <span class="number">2</span>&gt; edit params mgr</span><br><span class="line">PORT <span class="number">7809</span></span><br><span class="line">DYNAMICPORTLIST <span class="number">7810</span><span class="number">-7909</span></span><br><span class="line">AUTORESTART EXTRACT *,RETRIES <span class="number">5</span>,WAITMINUTES <span class="number">3</span></span><br><span class="line">PURGEOLDEXTRACTS ./dirdat<span class="comment">/*,usecheckpoints, minkeepdays 3</span></span><br></pre></td></tr></table></figure>
+<h4 id="配置checkpoint"><a href="#配置checkpoint" class="headerlink" title="配置checkpoint"></a>配置checkpoint</h4><p>checkpoint即复制可追溯的一个偏移量记录，在全局配置里添加checkpoint表即可</p>
+<figure class="highlight pgsql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">GGSCI (dev-cdh<span class="number">-002</span>v) <span class="number">5</span>&gt; edit  params  ./GLOBALS</span><br><span class="line">CHECKPOINTTABLE tcloud.<span class="keyword">checkpoint</span></span><br></pre></td></tr></table></figure>
+
+<p>保存即可</p>
+<h4 id="配置replicate进程"><a href="#配置replicate进程" class="headerlink" title="配置replicate进程"></a>配置replicate进程</h4><p>本步骤接收端为hdfs文件<br>在OGG的命令行下执行：</p>
+<figure class="highlight properties"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">GGSCI</span> <span class="string">(dev-cdh-002v) 8&gt; edit params r2hdfs</span></span><br><span class="line"><span class="attr">REPLICAT</span> <span class="string">r2hdfs</span></span><br><span class="line"><span class="attr">sourcedefs</span> <span class="string">/data/gg/dirdef/tcloud.t_ogg</span></span><br><span class="line"><span class="attr">TARGETDB</span> <span class="string">LIBFILE libggjava.so SET property=dirprm/hdfs.props</span></span><br><span class="line"><span class="attr">REPORTCOUNT</span> <span class="string">EVERY 1 MINUTES, RATE </span></span><br><span class="line"><span class="attr">GROUPTRANSOPS</span> <span class="string">10000</span></span><br><span class="line"><span class="attr">MAP</span> <span class="string">tcloud.t_ogg, TARGET tcloud.t_ogg;</span></span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>tcloud.t_ogg 文件由源端自动生成，放入主目录下dirdef 目录下即可</p>
+</blockquote>
+<p>其中上述中<br>管理器manager的配置文件 mgr.prm<br>replicate的配置文件 r2hdfs.prm<br>以及下面的hdfs接收配置文件 hdfs.props<br>均可在 /opt/ogg/dirprm/目录下编辑</p>
+<p>hdfs.pops</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">gg.handlerlist=hdfs</span><br><span class="line"></span><br><span class="line">gg.handler.hdfs.type=hdfs</span><br><span class="line">gg.handler.hdfs.pathMappingTemplate=/ogg/replication/hive</span><br><span class="line">gg.handler.hdfs.mode=op</span><br><span class="line">gg.handler.hdfs.format=delimitedtext</span><br><span class="line"></span><br><span class="line">goldengate.userexit.writers=javawriter</span><br><span class="line">javawriter.stats.display=TRUE</span><br><span class="line">javawriter.stats.full=TRUE</span><br><span class="line"></span><br><span class="line">gg.log=log4j</span><br><span class="line">gg.log.level=INFO</span><br><span class="line"></span><br><span class="line">gg.report.time=30sec</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash">Sample gg.classpath <span class="keyword">for</span> Apache Hadoop</span></span><br><span class="line"><span class="meta">#</span><span class="bash">gg.classpath=/var/lib/hadoop/share/hadoop/common/*:/var/lib/hadoop/share/hadoop/common/lib/*:/var/lib/hadoop/share/hadoop/hdfs/*:/var/lib/hadoop/share/hadoop/hdfs/lib/*:/var/lib/hadoop/etc/hadoop/:</span></span><br><span class="line"><span class="meta">#</span><span class="bash">Sample gg.classpath <span class="keyword">for</span> CDH</span></span><br><span class="line">gg.classpath=/opt/cloudera/parcels/CDH/lib/hadoop/client/*:/etc/hadoop/conf</span><br><span class="line"><span class="meta">#</span><span class="bash">Sample gg.classpath <span class="keyword">for</span> HDP</span></span><br><span class="line"><span class="meta">#</span><span class="bash">gg.classpath=/usr/hdp/current/hadoop-client/client/*:/etc/hadoop/conf</span></span><br></pre></td></tr></table></figure>
+<p>可参照 /opt/ogg/AdapterExamples/big-data/hdfs 目录下的样例文件进行编辑<br>具体的OGG for Big Data支持参数以及定义可参考地址<br><a href="https://docs.oracle.com/goldengate/bd1221/gg-bd/GADBD/GUID-85A82B2E-CD51-463A-8674-3D686C3C0EC0.htm#GADBD376" target="_blank" rel="noopener">https://docs.oracle.com/goldengate/bd1221/gg-bd/GADBD/GUID-85A82B2E-CD51-463A-8674-3D686C3C0EC0.htm#GADBD376</a></p>
+<h3 id="kafka接收数据配置"><a href="#kafka接收数据配置" class="headerlink" title="kafka接收数据配置"></a>kafka接收数据配置</h3><p>新定义一个replicate 进程为rekafka.prm</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">REPLICAT rekafka</span><br><span class="line">sourcedefs /opt/ogg/dirdef/tcloud.t_ogg</span><br><span class="line">TARGETDB LIBFILE libggjava.so SET property=dirprm/kafka.props</span><br><span class="line">REPORTCOUNT EVERY 1 MINUTES, RATE </span><br><span class="line">GROUPTRANSOPS 10000</span><br><span class="line">MAP tcloud.t_ogg, TARGET tcloud.t_ogg;</span><br></pre></td></tr></table></figure>
+
+
+<p>另新建一个kafka接收配置文件<br>kafka.props</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">gg.handlerlist=kafkahandler</span><br><span class="line">gg.handler.kafkahandler.type=kafka</span><br><span class="line">gg.handler.kafkahandler.KafkaProducerConfigFile=custom_kafka_producer.properties</span><br><span class="line">gg.handler.kafkahandler.topicMappingTemplate=test_ogg</span><br><span class="line">gg.handler.kafkahandler.format=json</span><br><span class="line">gg.handler.kafkahandler.mode=op</span><br><span class="line"></span><br><span class="line">goldengate.userexit.writers=javawriter</span><br><span class="line">javawriter.stats.display=TRUE</span><br><span class="line">javawriter.stats.full=TRUE</span><br><span class="line"></span><br><span class="line">gg.log=log4j</span><br><span class="line">gg.log.level=INFO</span><br><span class="line"></span><br><span class="line">gg.report.time=30sec</span><br><span class="line"></span><br><span class="line">gg.classpath=dirprm/:/opt/cloudera/parcels/CDH/lib/kafka/libs/*:/opt/cloudera/parcels/CDH/etc/kafka/conf.dist/*:/opt/ogg/:/opt/ogg/lib/*</span><br><span class="line">javawriter.bootoptions=-Xmx512m -Xms32m -Djava.class.path=ggjava/ggjava.jar</span><br></pre></td></tr></table></figure>
+
+<p>同时新建一个kafka信息配置文件custom_kafka_producer.properties</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">bootstrap.servers=172.17.194.18:9092,172.17.194.19:9092,172.17.194.20:9092</span><br><span class="line">acks=1</span><br><span class="line">compression.type=gzip</span><br><span class="line">reconnect.backoff.ms=1000</span><br><span class="line">value.serializer=org.apache.kafka.common.serialization.ByteArraySerializer</span><br><span class="line">key.serializer=org.apache.kafka.common.serialization.ByteArraySerializer</span><br><span class="line">batch.size=102400</span><br><span class="line">linger.ms=10000</span><br></pre></td></tr></table></figure>
+
+<p>以上文件同样可参考<br>/opt/ogg/AdapterExamples/big-data/kafka/目录下的样例文件或者<br><a href="https://docs.oracle.com/goldengate/bd1221/gg-bd/GADBD/GUID-2561CA12-9BAC-454B-A2E3-2D36C5C60EE5.htm#GADBD449" target="_blank" rel="noopener">https://docs.oracle.com/goldengate/bd1221/gg-bd/GADBD/GUID-2561CA12-9BAC-454B-A2E3-2D36C5C60EE5.htm#GADBD449</a></p>
+<h3 id="测试"><a href="#测试" class="headerlink" title="测试"></a>测试</h3><h4 id="6-1-启动所有进程"><a href="#6-1-启动所有进程" class="headerlink" title="6.1 启动所有进程"></a>6.1 启动所有进程</h4><p>在源端和目标端的OGG命令行下使用start [进程名]的形式启动所有进程。<br>启动顺序按照源mgr——目标mgr——源extract——源pump——目标replicate来完成。<br>全部需要在ogg目录下执行ggsci目录进入ogg命令行。 </p>
+<p>源端依次是</p>
+<figure class="highlight crmsh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="literal">start</span> mgr</span><br><span class="line"><span class="literal">start</span> extkafka</span><br><span class="line"><span class="literal">start</span> pukafka</span><br></pre></td></tr></table></figure>
+<p>目标端</p>
+<figure class="highlight crmsh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="literal">start</span> mgr</span><br><span class="line"><span class="literal">start</span> rekafka</span><br></pre></td></tr></table></figure>
+
+<p>可以通过info all 或者info [进程名] 查看状态，所有的进程都为RUNNING才算成功<br>源端</p>
+<figure class="highlight angelscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">GGSCI (ambari.master.com) <span class="number">5</span>&gt; info all</span><br><span class="line"></span><br><span class="line">Program     Status      Group       Lag at Chkpt  Time Since Chkpt</span><br><span class="line"></span><br><span class="line">MANAGER     RUNNING                                           </span><br><span class="line">EXTRACT     RUNNING     EXTKAFKA    <span class="number">04</span>:<span class="number">50</span>:<span class="number">21</span>      <span class="number">00</span>:<span class="number">00</span>:<span class="number">03</span>    </span><br><span class="line">EXTRACT     RUNNING     PUKAFKA     <span class="number">00</span>:<span class="number">00</span>:<span class="number">00</span>      <span class="number">00</span>:<span class="number">00</span>:<span class="number">03</span></span><br></pre></td></tr></table></figure>
+
+<p>目标端</p>
+<figure class="highlight routeros"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">GGSCI (ambari.slave1.com) 3&gt; <span class="builtin-name">info</span> all</span><br><span class="line"></span><br><span class="line">Program     Status     <span class="built_in"> Group </span>      Lag at Chkpt  Time Since Chkpt</span><br><span class="line"></span><br><span class="line">MANAGER     RUNNING                                           </span><br><span class="line">REPLICAT    RUNNING     REKAFKA     00:00:00      00:00:01</span><br></pre></td></tr></table></figure>
+
+
+<h4 id="6-2-异常解决"><a href="#6-2-异常解决" class="headerlink" title="6.2 异常解决"></a>6.2 异常解决</h4><p>如果有不是RUNNING可通过查看日志的方法检查解决问题，具体通过下面两种方法</p>
+<p>vim ggser.log<br>1<br>或者ogg命令行,以rekafka进程为例</p>
+<p>GGSCI (ambari.slave1.com) 2&gt; view report rekafka</p>
+<h4 id="kafka查看过来的数据"><a href="#kafka查看过来的数据" class="headerlink" title="kafka查看过来的数据"></a>kafka查看过来的数据</h4><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kafka-topics --describe --zookeeper l172.17.194.18:2181,172.17.194.19:2181,172.17.194.20:2181 --topic test_ogg</span><br></pre></td></tr></table></figure>
+
+<h4 id="添加主键"><a href="#添加主键" class="headerlink" title="添加主键"></a>添加主键</h4><p>在kafka.props添加</p>
+<figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">gg.handler.kafkahandler.format.includePrimaryKeys</span>=<span class="literal">true</span></span><br></pre></td></tr></table></figure>
+<h3 id="参考资料："><a href="#参考资料：" class="headerlink" title="参考资料："></a>参考资料：</h3><p><a href="https://www.cnblogs.com/purpleraintear/p/6071038.html" target="_blank" rel="noopener">https://www.cnblogs.com/purpleraintear/p/6071038.html</a></p>
+<p><a href="https://blog.csdn.net/dkl12/article/details/80447154" target="_blank" rel="noopener">https://blog.csdn.net/dkl12/article/details/80447154</a></p>
+<p><a href="https://docs.oracle.com/goldengate/bd1221/gg-bd/GADBD/GUID-2561CA12-9BAC-454B-A2E3-2D36C5C60EE5.htm#GADBD449" target="_blank" rel="noopener">https://docs.oracle.com/goldengate/bd1221/gg-bd/GADBD/GUID-2561CA12-9BAC-454B-A2E3-2D36C5C60EE5.htm#GADBD449</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/02/02/hive%E5%86%85%E9%83%A8%E8%A1%A8%E4%B8%8E%E5%A4%96%E9%83%A8%E8%A1%A8%E5%8C%BA%E5%88%AB/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/cat.png">
+      <meta itemprop="name" content="king">
+      <meta itemprop="description" content="诸天气荡荡,我道日兴隆">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="诗与远方">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/02/02/hive%E5%86%85%E9%83%A8%E8%A1%A8%E4%B8%8E%E5%A4%96%E9%83%A8%E8%A1%A8%E5%8C%BA%E5%88%AB/" class="post-title-link" itemprop="url">hive内部表与外部表区别</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-02-02 14:22:24" itemprop="dateCreated datePublished" datetime="2019-02-02T14:22:24+08:00">2019-02-02</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/hive/" itemprop="url" rel="index"><span itemprop="name">hive</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>总结一下Hive的内部表和外部表以及两者的区别。</p>
+<h2 id="1、建表语句"><a href="#1、建表语句" class="headerlink" title="1、建表语句"></a>1、建表语句</h2><h3 id="1-1-内部表"><a href="#1-1-内部表" class="headerlink" title="1.1 内部表"></a>1.1 内部表</h3><p>平时创建的普通表为内部表(默认创建的就是内部表)</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">create</span> <span class="keyword">table</span> test_internal (</span><br><span class="line"><span class="keyword">id</span> <span class="keyword">string</span> <span class="keyword">comment</span> <span class="string">'ID'</span>, </span><br><span class="line"><span class="keyword">name</span> <span class="keyword">string</span> <span class="keyword">comment</span> <span class="string">'名字'</span></span><br><span class="line">)</span><br><span class="line"><span class="keyword">comment</span> <span class="string">'测试内部表'</span></span><br><span class="line"><span class="keyword">ROW</span> <span class="keyword">FORMAT</span> <span class="keyword">DELIMITED</span> <span class="keyword">FIELDS</span> <span class="keyword">TERMINATED</span> <span class="keyword">BY</span> <span class="string">','</span> ;</span><br></pre></td></tr></table></figure>
+<h3 id="1-2-外部表"><a href="#1-2-外部表" class="headerlink" title="1.2 外部表"></a>1.2 外部表</h3><p>带external关键字的为外部表</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">create</span> <span class="keyword">external</span> <span class="keyword">table</span> <span class="string">`test_external`</span> (</span><br><span class="line"><span class="keyword">id</span> <span class="keyword">string</span> <span class="keyword">comment</span> <span class="string">'ID'</span>, </span><br><span class="line"><span class="keyword">name</span> <span class="keyword">string</span> <span class="keyword">comment</span> <span class="string">'名字'</span></span><br><span class="line">)</span><br><span class="line"><span class="keyword">comment</span> <span class="string">'测试外部表'</span></span><br><span class="line"><span class="keyword">ROW</span> <span class="keyword">FORMAT</span> <span class="keyword">DELIMITED</span> <span class="keyword">FIELDS</span> <span class="keyword">TERMINATED</span> <span class="keyword">BY</span> <span class="string">','</span> ;</span><br></pre></td></tr></table></figure>
+<p>仅从建表语句上看，内部表和外部表的区别为是否带有external关键字。</p>
+<h2 id="2、location"><a href="#2、location" class="headerlink" title="2、location"></a>2、location</h2><ul>
+<li>其实不管是内部表还是外部表都可以加location关键字指定hive表的存储路径，当然也可以不加，从这点看是没有区别的。</li>
+<li>如果不加location那么不管是内部表还是外部表都会在默认的hive配置的hdfs路径下下新建一个和表名相同的文件夹。</li>
+<li>如果加了location指定另外的文件夹，那么在查询时，该文件夹下对应的数据会加载到hive表里。<h3 id="2-1-数据"><a href="#2-1-数据" class="headerlink" title="2.1 数据"></a>2.1 数据</h3></li>
+</ul>
+<p>data.txt</p>
+<p>002,张三 <br>003,李四</p>
+<figure class="highlight dos"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">hadoop <span class="built_in">fs</span> -<span class="built_in">mkdir</span> -p /tmp/king/internal_location</span><br><span class="line">hadoop <span class="built_in">fs</span> -<span class="built_in">mkdir</span> -p /tmp/king/external_location</span><br><span class="line">hadoop <span class="built_in">fs</span> -put data.txt /tmp/king/internal_location</span><br><span class="line">hadoop <span class="built_in">fs</span> -put data.txt /tmp/king/external_location</span><br></pre></td></tr></table></figure>
+<h3 id="2-2-建表"><a href="#2-2-建表" class="headerlink" title="2.2 建表"></a>2.2 建表</h3><h4 id="2-2-1-内部表"><a href="#2-2-1-内部表" class="headerlink" title="2.2.1 内部表"></a>2.2.1 内部表</h4><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">create</span> <span class="keyword">table</span> test_internal_location (</span><br><span class="line"><span class="keyword">id</span> <span class="keyword">string</span> <span class="keyword">comment</span> <span class="string">'ID'</span>, </span><br><span class="line"><span class="keyword">name</span> <span class="keyword">string</span> <span class="keyword">comment</span> <span class="string">'名字'</span></span><br><span class="line">)</span><br><span class="line"><span class="keyword">comment</span> <span class="string">'测试内部表location'</span></span><br><span class="line"><span class="keyword">ROW</span> <span class="keyword">FORMAT</span> <span class="keyword">DELIMITED</span> <span class="keyword">FIELDS</span> <span class="keyword">TERMINATED</span> <span class="keyword">BY</span> <span class="string">','</span> </span><br><span class="line">location <span class="string">'/tmp/king/internal_location'</span>;</span><br></pre></td></tr></table></figure>
+
+<h4 id="2-2-2-外部表"><a href="#2-2-2-外部表" class="headerlink" title="2.2.2 外部表"></a>2.2.2 外部表</h4><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">create</span> <span class="keyword">external</span> <span class="keyword">table</span> test_external_location (</span><br><span class="line"><span class="keyword">id</span> <span class="keyword">string</span> <span class="keyword">comment</span> <span class="string">'ID'</span>, </span><br><span class="line"><span class="keyword">name</span> <span class="keyword">string</span> <span class="keyword">comment</span> <span class="string">'名字'</span></span><br><span class="line">)</span><br><span class="line"><span class="keyword">comment</span> <span class="string">'测试外部表location'</span></span><br><span class="line"><span class="keyword">ROW</span> <span class="keyword">FORMAT</span> <span class="keyword">DELIMITED</span> <span class="keyword">FIELDS</span> <span class="keyword">TERMINATED</span> <span class="keyword">BY</span> <span class="string">','</span> </span><br><span class="line">location <span class="string">'/tmp/king/external_location'</span>;</span><br></pre></td></tr></table></figure>
+<h2 id="3、删除表"><a href="#3、删除表" class="headerlink" title="3、删除表"></a>3、删除表</h2><p>内部表和外部表的区别主要体现在删除表，将上面建立的四个表都删掉。</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">drop</span> <span class="keyword">table</span> test_internal;</span><br><span class="line"><span class="keyword">drop</span> <span class="keyword">table</span> test_external;</span><br><span class="line"><span class="keyword">drop</span> <span class="keyword">table</span> test_internal_location;</span><br><span class="line"><span class="keyword">drop</span> <span class="keyword">table</span> test_external_location;</span><br></pre></td></tr></table></figure>
+
+<p>看一下对应的hdfs路径有啥变化<br>hadoop命令</p>
+<figure class="highlight awk"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">hadoop fs -ls <span class="regexp">/user/</span>hive<span class="regexp">/warehouse/</span>db_king.db</span><br><span class="line">hadoop fs -ls <span class="regexp">/tmp/</span>king</span><br></pre></td></tr></table></figure>
+
+<p>发现外部表test_external文件夹和external_location文件夹都存在，而内部表的两个文件夹都没了，这也就是内部表和外部表的区别：</p>
+<p>内部表删除表时，对应的hdfs的路径下的文件会删掉；外部表删除表时，对应的HDFS的路径下的文件则不会删掉，无论是建表是指定location还是不指定location</p>
+<h2 id="4、总结"><a href="#4、总结" class="headerlink" title="4、总结"></a>4、总结</h2><ul>
+<li>建表时带有external关键字为外部表，否则为内部表</li>
+<li>内部表和外部表建表时都可以自己指定location</li>
+<li>在删除表的时候，Hive将会把属于表的元数据和数据全部删掉；而删除外部表的时候，Hive仅仅删除外部表的元数据，数据是不会删除的！</li>
+<li>其他用法是一样的</li>
+</ul>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
 
   
+  <nav class="pagination">
+    <span class="page-number current">1</span><a class="page-number" href="/page/2/">2</a><a class="extend next" rel="next" href="/page/2/"><i class="fa fa-angle-right" aria-label="下一页"></i></a>
+  </nav>
 
 
 
@@ -290,9 +1562,21 @@
   <nav class="site-state">
       <div class="site-state-item site-state-posts">
           <a href="/archives">
-          <span class="site-state-item-count">1</span>
+          <span class="site-state-item-count">20</span>
           <span class="site-state-item-name">日志</span>
         </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">15</span>
+        <span class="site-state-item-name">标签</span></a>
       </div>
   </nav>
 </div>

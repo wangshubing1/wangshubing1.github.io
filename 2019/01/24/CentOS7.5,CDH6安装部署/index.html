@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Monda:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  <link rel="stylesheet" href="/lib/pace/pace-theme-minimal.min.css">
+  <script src="/lib/pace/pace.min.js"></script>
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"yoursite.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="集群规划1.CDH简介　Cloudera’s Distribution, including Apache Hadoop基于Web的用户界面,支持大多数Hadoop组件，包括HDFS、MapReduce、Hive、Pig、 Hbase、Zookeeper、Sqoop,简化了大数据平台的安装、使用难度。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="CentOS7.5+CDH6安装部署">
+<meta property="og:url" content="http://yoursite.com/2019/01/24/CentOS7.5,CDH6%E5%AE%89%E8%A3%85%E9%83%A8%E7%BD%B2/index.html">
+<meta property="og:site_name" content="诗与远方">
+<meta property="og:description" content="集群规划1.CDH简介　Cloudera’s Distribution, including Apache Hadoop基于Web的用户界面,支持大多数Hadoop组件，包括HDFS、MapReduce、Hive、Pig、 Hbase、Zookeeper、Sqoop,简化了大数据平台的安装、使用难度。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2019-01-24T15:43:31.090Z">
+<meta property="article:modified_time" content="2019-01-24T16:00:22.911Z">
+<meta property="article:author" content="king">
+<meta property="article:tag" content="CDH">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://yoursite.com/2019/01/24/CentOS7.5,CDH6%E5%AE%89%E8%A3%85%E9%83%A8%E7%BD%B2/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>CentOS7.5+CDH6安装部署 | 诗与远方</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">诗与远方</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">人道渺渺,仙道莽莽</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/01/24/CentOS7.5,CDH6%E5%AE%89%E8%A3%85%E9%83%A8%E7%BD%B2/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/cat.png">
+      <meta itemprop="name" content="king">
+      <meta itemprop="description" content="诸天气荡荡,我道日兴隆">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="诗与远方">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          CentOS7.5+CDH6安装部署
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-01-24 23:43:31" itemprop="dateCreated datePublished" datetime="2019-01-24T23:43:31+08:00">2019-01-24</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2019-01-25 00:00:22" itemprop="dateModified" datetime="2019-01-25T00:00:22+08:00">2019-01-25</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/CDH/" itemprop="url" rel="index"><span itemprop="name">CDH</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="集群规划"><a href="#集群规划" class="headerlink" title="集群规划"></a>集群规划</h2><h4 id="1-CDH简介"><a href="#1-CDH简介" class="headerlink" title="1.CDH简介　"></a>1.CDH简介　</h4><p>Cloudera’s Distribution, including Apache Hadoop<br>基于Web的用户界面,支持大多数Hadoop组件，包括HDFS、MapReduce、Hive、Pig、 Hbase、Zookeeper、Sqoop,简化了大数据平台的安装、使用难度。</p>
+<a id="more"></a>
+<h4 id="2-硬件配置"><a href="#2-硬件配置" class="headerlink" title="2.硬件配置"></a>2.硬件配置</h4><ul>
+<li>-u root -p 123456</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>IP</th>
+<th>HostName</th>
+<th>OS</th>
+<th>Cores</th>
+<th>Memory</th>
+<th>Disk</th>
+<th>Remark</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>172.20.32.1</td>
+<td>master</td>
+<td>CentOS7.3</td>
+<td>4</td>
+<td>32G</td>
+<td>3T</td>
+<td>NameNode，cloudera  Server</td>
+</tr>
+<tr>
+<td>172.20.32.2</td>
+<td>slave1</td>
+<td>CentOS7.3</td>
+<td>4</td>
+<td>32G</td>
+<td>1.5T</td>
+<td>NameNode，cloudera  agent</td>
+</tr>
+<tr>
+<td>172.20.32.3</td>
+<td>slave2</td>
+<td>CentOS7.3</td>
+<td>2</td>
+<td>16G</td>
+<td>6.6T</td>
+<td>DataNode，cloudera  agent</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>注意：假如是虚拟机，磁盘挂载单目录（无需分盘）</p>
+</blockquote>
+<ul>
+<li>其中namenode用来部署HA，其中mysql,hdfs.namenode，Hbase.Master,Yarn.ResourceManager等</li>
+<li>datanode用来作为worker节点，还需承担zk，kafka等其他服务的部署</li>
+</ul>
+<h4 id="软件配置"><a href="#软件配置" class="headerlink" title="软件配置"></a>软件配置</h4><ul>
+<li>JDK1.8.0_131</li>
+<li>mysql5.6 <figure class="highlight accesslog"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">172.20.32.37</span> <span class="number">3306</span> </span><br><span class="line">-u cdh6 -p <span class="number">123456</span></span><br></pre></td></tr></table></figure>
+<table>
+<thead>
+<tr>
+<th>name</th>
+<th>版本</th>
+<th>来源</th>
+<th>remak</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>CM</td>
+<td>6.0.1</td>
+<td><a href="https://archive.cloudera.com/cm6/6.0.1/" target="_blank" rel="noopener">https://archive.cloudera.com/cm6/6.0.1/</a></td>
+<td></td>
+</tr>
+<tr>
+<td>CDH</td>
+<td>6.0.1</td>
+<td><a href="https://archive.cloudera.com/cdh6/6.0.1/parcels/" target="_blank" rel="noopener">https://archive.cloudera.com/cdh6/6.0.1/parcels/</a></td>
+<td></td>
+</tr>
+<tr>
+<td>hadoop</td>
+<td>3.0.0-cdh6.0.1</td>
+<td>cdh自带包</td>
+<td></td>
+</tr>
+<tr>
+<td>hive</td>
+<td>2.1.1-cdh6.0.1</td>
+<td>cdh自带包</td>
+<td></td>
+</tr>
+<tr>
+<td>hbase</td>
+<td>2.0.0-cdh6.0.1</td>
+<td>cdh自带包</td>
+<td></td>
+</tr>
+<tr>
+<td>solr</td>
+<td>7.0.0+cdh6.0.1</td>
+<td>cdh自带包</td>
+<td></td>
+</tr>
+<tr>
+<td>impala</td>
+<td>3.0.0-cdh6.0.1</td>
+<td>cdh自带包</td>
+<td></td>
+</tr>
+<tr>
+<td>hue</td>
+<td>3.9.0+cdh6.0.1</td>
+<td>cdh自带包</td>
+<td></td>
+</tr>
+<tr>
+<td>sqoop</td>
+<td>1.4.7-cdh6.0.1</td>
+<td>cdh自带包</td>
+<td></td>
+</tr>
+<tr>
+<td>kafka</td>
+<td>1.0.0-cdh6.0.1</td>
+<td>cdh自带包</td>
+<td></td>
+</tr>
+<tr>
+<td>spark</td>
+<td>2.2.0+cdh6.0.1</td>
+<td>cdh自带包</td>
+<td></td>
+</tr>
+<tr>
+<td>oozie</td>
+<td>5.0.0-beta1-cdh6.0.1</td>
+<td>cdh自带包</td>
+<td></td>
+</tr>
+<tr>
+<td>kudu</td>
+<td>1.6.0-cdh6.0.1</td>
+<td>cdh自带包</td>
+<td></td>
+</tr>
+<tr>
+<td>flume-ng</td>
+<td>flume-ng</td>
+<td>cdh自带包</td>
+<td></td>
+</tr>
+</tbody></table>
+</li>
+</ul>
+<blockquote>
+<p>注意：其他组件需要单独安装部署，eg:flink,kylin,ELK等</p>
+</blockquote>
+<h2 id="基础环境配置准备"><a href="#基础环境配置准备" class="headerlink" title="基础环境配置准备"></a>基础环境配置准备</h2><h4 id="1-关闭防火墙-master-slave1-2"><a href="#1-关闭防火墙-master-slave1-2" class="headerlink" title="1.关闭防火墙[master,slave1-2]"></a>1.关闭防火墙[master,slave1-2]</h4><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">临时关闭防火墙</span><br><span class="line"><span class="meta">#</span><span class="bash"> systemctl stop firewalld</span></span><br><span class="line">永久防火墙开机自启动</span><br><span class="line"><span class="meta">#</span><span class="bash"> systemctl <span class="built_in">disable</span> firewalld </span></span><br><span class="line">查看防火墙状态</span><br><span class="line"><span class="meta">#</span><span class="bash"> systemctl status firewalld</span></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash">  systemctl status firewalld</span></span><br><span class="line">Unit firewalld.service could not be found.</span><br></pre></td></tr></table></figure>
+
+<h4 id="2-selinux关闭-master-slave1-2"><a href="#2-selinux关闭-master-slave1-2" class="headerlink" title="2.selinux关闭[master,slave1-2]"></a>2.selinux关闭[master,slave1-2]</h4><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> vim /etc/sysconfig/selinux</span></span><br><span class="line">SELINUX=disabled</span><br><span class="line">重启机器，命令：</span><br><span class="line"><span class="meta">#</span><span class="bash"> reboot</span></span><br><span class="line">重启后检查：</span><br><span class="line"><span class="meta">#</span><span class="bash"> sestatus –v</span></span><br></pre></td></tr></table></figure>
+<h4 id="3-hostname-config-master-slave1-2"><a href="#3-hostname-config-master-slave1-2" class="headerlink" title="3.hostname config[master,slave1-2]"></a>3.hostname config[master,slave1-2]</h4><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line">master上执行</span><br><span class="line"><span class="meta">#</span><span class="bash"> vim /etc/hosts</span></span><br><span class="line">172.20.32.2 slave1</span><br><span class="line">172.20.32.1 master</span><br><span class="line">172.20.32.3 slave2</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> vim /etc/sysconfig/network</span></span><br><span class="line">NETWORKING=yes</span><br><span class="line">HOSTNAME=slave1</span><br><span class="line"><span class="meta">#</span><span class="bash"> ---------------------------</span></span><br><span class="line">slave1上执行</span><br><span class="line"><span class="meta">#</span><span class="bash"> vim /etc/hosts</span></span><br><span class="line">172.20.32.2 slave1</span><br><span class="line">172.20.32.1 master</span><br><span class="line">172.20.32.3 slave2</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> vim /etc/sysconfig/network</span></span><br><span class="line">NETWORKING=yes</span><br><span class="line">HOSTNAME=master</span><br><span class="line"><span class="meta">#</span><span class="bash"> -----------------------------</span></span><br><span class="line">slave2上执行</span><br><span class="line"><span class="meta">#</span><span class="bash"> vim /etc/hosts</span></span><br><span class="line">172.20.32.2 slave1</span><br><span class="line">172.20.32.1 master</span><br><span class="line">172.20.32.3 slave2</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> vim /etc/sysconfig/network</span></span><br><span class="line">NETWORKING=yes</span><br><span class="line">HOSTNAME=slave2</span><br><span class="line"><span class="meta">#</span><span class="bash"> --------------------------</span></span><br></pre></td></tr></table></figure>
+<h4 id="4-NTP服务器设置-master-slave1-2"><a href="#4-NTP服务器设置-master-slave1-2" class="headerlink" title="4.NTP服务器设置[master,slave1-2]"></a>4.NTP服务器设置[master,slave1-2]</h4><p>一般默认即可！如有问题还请查阅相关资料</p>
+<h4 id="5-安装jdk-master-slave1-2"><a href="#5-安装jdk-master-slave1-2" class="headerlink" title="5.安装jdk[master,slave1-2]"></a>5.安装jdk[master,slave1-2]</h4><p>安装之前先卸载CentOS7自带的JDK</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">查看系统已经装的jdk： </span><br><span class="line"><span class="meta">#</span><span class="bash"> rpm -qa|grep jdk</span></span><br><span class="line">卸载jdk：</span><br><span class="line"><span class="meta">#</span><span class="bash"> rpm -e --nodeps java-1.6.0-openjdk-javadoc-1.6.0.0-1.66.1.13.0.el6.x86_64</span></span><br><span class="line"></span><br><span class="line">1.下载“jdk-8u131-linux-x64.tar.gz”，放到/usr/java/目录下</span><br><span class="line">2.解压</span><br><span class="line"><span class="meta">#</span><span class="bash"> tar -xzvf jdk-8u131-linux-x64.tar.gz</span></span><br><span class="line">3.在任何目录下均可编辑  </span><br><span class="line"><span class="meta">#</span><span class="bash"> vim /etc/profile.d/java_home.sh</span></span><br><span class="line">export JAVA_HOME=/usr/java/jdk1.8.0_131</span><br><span class="line">export JRE_HOME=$JAVA_HOME/jre</span><br><span class="line">export PATH=$PATH:$JAVA_HOME/bin</span><br><span class="line">export CLASSPATH=.:$JAVA_HOME/lib:$JRE_HOME/lib</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> <span class="built_in">source</span> /etc/profile.d/java_home.sh</span></span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>注意！必须在该目录下安装JDK，后续cdh默认加载此路径的JDK**</p>
+</blockquote>
+<h4 id="6-配置各节点之间ssh免密登录-master-slave1-2"><a href="#6-配置各节点之间ssh免密登录-master-slave1-2" class="headerlink" title="6. 配置各节点之间ssh免密登录[master,slave1-2]"></a>6. 配置各节点之间ssh免密登录[master,slave1-2]</h4><p>此步骤交给运维去做</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">1.  CentOS默认没有启动ssh无密登录，</span><br><span class="line"><span class="meta">#</span><span class="bash"> vim /etc/ssh/sshd_config</span></span><br><span class="line">去掉其中3行的注释，每台服务器都要置</span><br><span class="line">开启  RSAAuthentication yes</span><br><span class="line">开启  PubkeyAuthentication yes</span><br><span class="line">开启  AuthorizedKeyFile  .ssh/authorized_keys</span><br><span class="line">  </span><br><span class="line"><span class="meta">#</span><span class="bash"> ssh-keygen -t rsa</span></span><br><span class="line">一直按回车</span><br><span class="line"><span class="meta">#</span><span class="bash"> ls /root/.ssh/ </span></span><br><span class="line">id_rsa 和 id_rsa.pub</span><br><span class="line"><span class="meta">#</span><span class="bash"> cp id_rsa.pub authorized_keys</span></span><br><span class="line"> 两个woker节点执行        </span><br><span class="line"><span class="meta">#</span><span class="bash"> cat ~/.ssh/authorized_keys | ssh root@172.20.32.1 <span class="string">'cat &gt;&gt; ~/.ssh/authorized_keys'</span></span></span><br><span class="line"></span><br><span class="line">master上执行</span><br><span class="line"><span class="meta">#</span><span class="bash"> scp authorized_keys root@172.20.32.2:/root/.ssh/</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> scp authorized_keys root@172.20.32.3:/root/.ssh/</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> scp known_hosts root@172.20.32.2:/root/.ssh/</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> scp known_hosts root@172.20.32.3:/root/.ssh/</span></span><br><span class="line">slave执行</span><br><span class="line"><span class="meta">#</span><span class="bash"> chmod 700 ~/.ssh</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> chmod 600 ~/.ssh/authorized_keys</span></span><br><span class="line">重启ssh服务</span><br><span class="line"><span class="meta">#</span><span class="bash"> systemctl restart sshd.service</span></span><br><span class="line">  验证能否无密码ssh，在master服务器上执行操作 </span><br><span class="line"><span class="meta">#</span><span class="bash"> ssh slave1</span></span><br><span class="line">不同用户之间退出</span><br><span class="line"><span class="meta">#</span><span class="bash"> <span class="built_in">logout</span></span></span><br></pre></td></tr></table></figure>
+<h4 id="7-优化虚拟内存需求率-master-slave1-2"><a href="#7-优化虚拟内存需求率-master-slave1-2" class="headerlink" title="7.优化虚拟内存需求率[master,slave1-2]"></a>7.优化虚拟内存需求率[master,slave1-2]</h4><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">检查虚拟内存需求率</span><br><span class="line"><span class="meta">#</span><span class="bash"> cat /proc/sys/vm/swappiness</span></span><br><span class="line">显示如下：</span><br><span class="line"> 30</span><br><span class="line">临时降低虚拟内存需求率</span><br><span class="line"><span class="meta">#</span><span class="bash"> sysctl vm.swappiness=10</span></span><br><span class="line">永久降低虚拟内存需求率</span><br><span class="line"><span class="meta">#</span><span class="bash"> <span class="built_in">echo</span> <span class="string">'vm.swappiness = 10'</span> &gt; /etc/sysctl.d/swappiness.conf</span></span><br><span class="line">并运行如下命令使生效</span><br><span class="line"><span class="meta">#</span><span class="bash"> sysctl -p</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="8-解决透明大页面问题-master-slave1-2"><a href="#8-解决透明大页面问题-master-slave1-2" class="headerlink" title="8. 解决透明大页面问题[master,slave1-2]"></a>8. 解决透明大页面问题[master,slave1-2]</h4><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">检查透明大页面问题</span><br><span class="line"><span class="meta">#</span><span class="bash"> cat /sys/kernel/mm/transparent_hugepage/defrag</span></span><br><span class="line">如果显示为：</span><br><span class="line">[always] madvise never</span><br><span class="line">临时关闭透明大页面问题</span><br><span class="line"><span class="meta">#</span><span class="bash"> <span class="built_in">echo</span> never &gt; /sys/kernel/mm/transparent_hugepage/defrag</span></span><br><span class="line"></span><br><span class="line">确认配置生效</span><br><span class="line"><span class="meta">#</span><span class="bash"> cat /sys/kernel/mm/transparent_hugepage/defrag</span></span><br><span class="line">应该显示为：</span><br><span class="line">always madvise [never]</span><br><span class="line">配置开机自动生效</span><br><span class="line"><span class="meta">#</span><span class="bash"> <span class="built_in">echo</span> never &gt; /sys/kernel/mm/transparent_hugepage/enabled</span></span><br></pre></td></tr></table></figure>
+<h4 id="9-mysql安装"><a href="#9-mysql安装" class="headerlink" title="9.mysql安装"></a>9.mysql安装</h4><figure class="highlight angelscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">FAQ</span><br><span class="line">采用的是DBA提供的<span class="number">172.20</span><span class="number">.32</span><span class="number">.37</span> 这个服务器上的mysql</span><br></pre></td></tr></table></figure>
+<h4 id="10-拷贝mysql-connector-java到各个节点指定目录下-master-slave1-2"><a href="#10-拷贝mysql-connector-java到各个节点指定目录下-master-slave1-2" class="headerlink" title="10 拷贝mysql-connector-java到各个节点指定目录下[master,slave1-2]"></a>10 拷贝mysql-connector-java到各个节点指定目录下[master,slave1-2]</h4><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[root@master ~]# cp mysql-connector-java-5.1.44-bin.jar /usr/share/java/mysql-connector-java.jar</span><br></pre></td></tr></table></figure>
+<h4 id="11-创建数据库-172-20-32-37"><a href="#11-创建数据库-172-20-32-37" class="headerlink" title="11.创建数据库[172.20.32.37]"></a>11.创建数据库[172.20.32.37]</h4><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&gt;</span><span class="bash"> mysql -u root -p 123456</span></span><br><span class="line">CREATE DATABASE db_cdh6_amon DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;</span><br><span class="line">CREATE DATABASE db_cdh6_hue DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;</span><br><span class="line">CREATE DATABASE db_cdh6_metastore DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;</span><br><span class="line">CREATE DATABASE db_cdh6_sentry DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;</span><br><span class="line">CREATE DATABASE db_cdh6_oozie DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci</span><br><span class="line">CREATE DATABASE db_cdh6_hive DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">GRANT ALL ON db_cdh6_scm.* TO 'cdh6'@'%' IDENTIFIED BY '123456';</span><br><span class="line">GRANT ALL ON db_cdh6_amon.* TO 'cdh6'@'%' IDENTIFIED BY '123456';</span><br><span class="line">GRANT ALL ON db_cdh6_hue.* TO 'cdh6'@'%' IDENTIFIED BY '123456';</span><br><span class="line">GRANT ALL ON db_cdh6_metastore.* TO 'cdh6'@'%' IDENTIFIED BY '123456';</span><br><span class="line">GRANT ALL ON db_cdh6_sentry.* TO 'cdh6'@'%' IDENTIFIED BY '123456';</span><br><span class="line">GRANT ALL ON db_cdh6_oozie.* TO 'cdh6'@'%' IDENTIFIED BY '123456';</span><br><span class="line">GRANT ALL ON db_cdh6_hive.* TO 'cdh6'@'%' IDENTIFIED BY '123456';</span><br><span class="line"></span><br><span class="line">FLUSH PRIVILEGES;</span><br></pre></td></tr></table></figure>
+<hr>
+<h2 id="Cloudera-Manager安装"><a href="#Cloudera-Manager安装" class="headerlink" title="Cloudera Manager安装"></a>Cloudera Manager安装</h2><h4 id="1、配置-Cloudera-Manager-仓库master-slave1-2"><a href="#1、配置-Cloudera-Manager-仓库master-slave1-2" class="headerlink" title="1、配置 Cloudera Manager 仓库master,slave1-2"></a>1、配置 Cloudera Manager 仓库<a href="1">master,slave1-2</a></h4><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">[root@master ~]# wget https://archive.cloudera.com/cm6/6.0.1/redhat7/yum/cloudera-manager.repo -P /etc/yum.repos.d/ </span><br><span class="line">[root@master ~]# rpm --import https://archive.cloudera.com/cm6/6.0.1/redhat7/yum/RPM-GPG-KEY-cloudera</span><br><span class="line"></span><br><span class="line">[root@slave1 ~]# wget https://archive.cloudera.com/cm6/6.0.1/redhat7/yum/cloudera-manager.repo -P /etc/yum.repos.d/ </span><br><span class="line">[root@slave1 ~]# rpm --import https://archive.cloudera.com/cm6/6.0.1/redhat7/yum/RPM-GPG-KEY-cloudera</span><br><span class="line"></span><br><span class="line">[root@slave2 ~]# wget https://archive.cloudera.com/cm6/6.0.1/redhat7/yum/cloudera-manager.repo -P /etc/yum.repos.d/ </span><br><span class="line">[root@slave2 ~]# rpm --import https://archive.cloudera.com/cm6/6.0.1/redhat7/yum/RPM-GPG-KEY-cloudera</span><br></pre></td></tr></table></figure>
+<p>使用仓库安装会比较慢，建议先把需要的rpm下载下来，进行离线安装或者建私有仓库，主要下面的三个软件包：</p>
+<figure class="highlight angelscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">cloudera-manager-agent<span class="number">-6.0</span><span class="number">.1</span><span class="number">-610811.</span>el7.x86_64.rpm</span><br><span class="line">cloudera-manager-daemons<span class="number">-6.0</span><span class="number">.1</span><span class="number">-610811.</span>el7.x86_64.rpm</span><br><span class="line">cloudera-manager-server<span class="number">-6.0</span><span class="number">.1</span><span class="number">-610811.</span>el7.x86_64.rpm</span><br><span class="line"></span><br><span class="line"><span class="comment">//cloudera-manager-daemons 是 server 和 agent 必须安装的。</span></span><br></pre></td></tr></table></figure>
+<h4 id="构建本地仓库-2-任意服务器"><a href="#构建本地仓库-2-任意服务器" class="headerlink" title="构建本地仓库(2) [任意服务器]"></a>构建本地仓库(2) [任意服务器]</h4><ul>
+<li>master<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">cm6.0.1</span><br><span class="line">[root@slave3 ~]# sudo yum install httpd</span><br><span class="line"></span><br><span class="line">[root@slave3 ~]# sudo systemctl start httpd</span><br><span class="line"></span><br><span class="line">[root@slave3 ~]# sudo mkdir -p /var/www/html/cloudera-repos</span><br><span class="line"></span><br><span class="line">[root@slave3 ~]# sudo wget --recursive --no-parent --no-host-directories https://archive.cloudera.com/cm6/6.0.1/redhat7/ -P /var/www/html/cloudera-repos</span><br><span class="line"></span><br><span class="line">[root@slave3 ~]# sudo chmod -R ugo+rX /var/www/html/cloudera-repos/cm6</span><br></pre></td></tr></table></figure>
+
+</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">- cdh6.0.1</span><br><span class="line"></span><br><span class="line">[root@slave3 ~]# sudo wget --recursive --no-parent --no-host-directories https://archive.cloudera.com/cdh6/6.0.1/parcels/CDH-6.0.1-1.cdh6.0.1.p0.590678-el7.parcel -P /var/www/html/cloudera-repos</span><br><span class="line"></span><br><span class="line">[root@slave3 ~]# sudo wget --recursive --no-parent --no-host-directories https://archive.cloudera.com/cdh6/6.0.1/parcels/CDH-6.0.1-1.cdh6.0.1.p0.590678-el7.parcel.sha256 -P /var/www/html/cloudera-repos</span><br><span class="line"></span><br><span class="line">[root@slave3 ~]# sudo wget --recursive --no-parent --no-host-directories https://archive.cloudera.com/cdh6/6.0.1/parcels/manifest.json -P /var/www/html/cloudera-repos</span><br><span class="line"></span><br><span class="line">[root@slave3 ~]# sudo wget --recursive --no-parent --no-host-directories https://archive.cloudera.com/gplextras6/6.0.1/redhat7/ -P /var/www/html/cloudera-repos</span><br><span class="line"></span><br><span class="line">[root@slave3 ~]# sudo chmod -R ugo+rX /var/www/html/cloudera-repos/cdh6</span><br></pre></td></tr></table></figure>
+
+<h5 id="创建访问端口"><a href="#创建访问端口" class="headerlink" title="创建访问端口"></a>创建访问端口</h5><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">[root@slave3 ~]# cd /var/www/html</span><br><span class="line"></span><br><span class="line">[root@slave3 ~]# python -m SimpleHTTPServer 8900</span><br></pre></td></tr></table></figure>
+
+<h5 id="构建yum源-master-slave1-2"><a href="#构建yum源-master-slave1-2" class="headerlink" title="构建yum源[master,slave1-2]"></a>构建yum源[master,slave1-2]</h5><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">[root@master ~]# vim /etc/yum.repos.d/cloudera-repo.repo</span><br><span class="line">[root@slave1 ~]# vim /etc/yum.repos.d/cloudera-repo.repo</span><br><span class="line">[root@slave2 ~]# vim /etc/yum.repos.d/cloudera-repo.repo</span><br><span class="line"></span><br><span class="line">[cloudera-repo]</span><br><span class="line">name=cloudera-repo</span><br><span class="line">baseurl=http://master:8900/cloudera-repos/cm6/6.0.1/redhat7/yum/</span><br><span class="line">enabled=1</span><br><span class="line">gpgcheck=0</span><br></pre></td></tr></table></figure>
+
+
+
+
+<h4 id="2-安装-CM-Server-和-Agent"><a href="#2-安装-CM-Server-和-Agent" class="headerlink" title="2.安装 CM Server 和 Agent"></a>2.安装 CM Server 和 Agent</h4><p>建议离线安装，把rpm包下载到服务器上面，传到其他节点一份，再本地安装，速度会快很多。</p>
+<ul>
+<li><input disabled="" type="checkbox"> master：<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[root@master ~]# yum install cloudera-manager-daemons cloudera-manager-agent cloudera-manager-server</span><br></pre></td></tr></table></figure></li>
+</ul>
+<ul>
+<li><input disabled="" type="checkbox"> slave1,slave2：</li>
+</ul>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[root@slave1 ~]# yum install cloudera-manager-daemons cloudera-manager-agent</span><br><span class="line">[root@slave2 ~]# yum install cloudera-manager-daemons cloudera-manager-agent</span><br></pre></td></tr></table></figure>
+<h4 id="3-设置-Cloudera-Manager-数据库"><a href="#3-设置-Cloudera-Manager-数据库" class="headerlink" title="3.设置 Cloudera Manager 数据库"></a>3.设置 Cloudera Manager 数据库</h4><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">mysql在本地时执行：</span><br><span class="line">[root@master ~]# rm -rf //cloudera-scm-server/db.mgmt.properties</span><br><span class="line">[root@master ~]# /opt/cloudera/cm/schema/scm_prepare_database.sh mysql db_cdh6_scm -h172.20.32.37  -uroot -p'blf1#root' --scm-host 172.20.32.1 db_cdh6_scm scm scm</span><br><span class="line"></span><br><span class="line">JAVA_HOME=/usr/java/jdk1.8.0_131</span><br><span class="line">Verifying that we can write to /etc/cloudera-scm-server</span><br><span class="line">Creating SCM configuration file in /etc/cloudera-scm-server</span><br><span class="line">Executing:  /usr/java/jdk1.8.0_131/bin/java -cp /usr/share/java/mysql-connector-java.jar:/usr/share/java/oracle-connector-java.jar:/usr/share/java/postgresql-connector-java.jar:/opt/cloudera/cm/schema/../lib/* com.cloudera.enterprise.dbutil.DbCommandExecutor /etc/cloudera-scm-server/db.properties com.cloudera.cmf.db.</span><br><span class="line">[                          main] DbCommandExecutor              INFO  Successfully connected to database.</span><br><span class="line">All done, your SCM database is configured correctly!</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>注意！上面最好指定ip,切勿使用hostname很容易出现问题</p>
+</blockquote>
+<h4 id="4-安装-CDH-master"><a href="#4-安装-CDH-master" class="headerlink" title="4.安装 CDH[master]"></a>4.安装 CDH[master]</h4><p>配置CDH的软件包 parcels(namenode01)<br>CM安装成功之后，接下来我们就可以通过CM安装CDH的方式构建企业大数据平台。所以首先需要把CDH的parcels包下载到CM主服务器上。<br>同样的，我们为了加速我们的安装，我们可以把需要下载的软件包提前下载下来，也可以创建CDH私有仓库。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">[root@master ~]# cd /opt/cloudera/parcel-repo</span><br><span class="line">[root@master ~]# wget http://172.20.32.36/package/CDH/CDH-6.0.1-1/CDH-6.0.1-1.cdh6.0.1.p0.590678-el7.parcel</span><br><span class="line">[root@master ~]# wget https://archive.cloudera.com/cdh6/6.0.1/parcels/manifest.json</span><br><span class="line">[root@master ~]# wget https://archive.cloudera.com/cdh6/6.0.1/parcels/CDH-6.0.1-1.cdh6.0.1.p0.590678-el7.parcel.sha256</span><br><span class="line"></span><br><span class="line">[root@master ~]# mv CDH-6.0.1-1.cdh6.0.1.p0.590678-el7.parcel.sha256 CDH-6.0.1-1.cdh6.0.1.p0.590678-el7.parcel.sha</span><br></pre></td></tr></table></figure>
+<p>也可以执行下面的操作<br>在manifest.json文件中，找到对应版本的秘钥，复制到.sha文件中。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[root@master ~]# echo "2e650f1f1ea020a3efc98a231b85c2df1a50b030" &gt; CDH-6.0.1-1.cdh6.0.1.p0.590678-el7.parcel.sha</span><br></pre></td></tr></table></figure>
+
+<p>修改属主属组。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[root@master ~]# chown cloudera-scm.cloudera-scm /opt/cloudera/parcel-repo/ *</span><br></pre></td></tr></table></figure>
+
+<p>启动 Cloudera Manager Server[master]</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[root@master ~]# systemctl start cloudera-scm-server</span><br></pre></td></tr></table></figure>
+
+<p>如果启动中有什么问题，可以查看日志。[master]</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[root@master ~]# tail -f /var/log/cloudera-scm-server/cloudera-scm-server.log</span><br></pre></td></tr></table></figure>
+<p>参考：<br><a href="http://blog.51cto.com/wzlinux/2321433" target="_blank" rel="noopener">http://blog.51cto.com/wzlinux/2321433</a><br><a href="https://www.cloudera.com/documentation/enterprise/6/6.0/topics/installation.html" target="_blank" rel="noopener">https://www.cloudera.com/documentation/enterprise/6/6.0/topics/installation.html</a></p>
+
+    </div>
+
+    
+    
+    
+        
+
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>本文作者： </strong>king
+  </li>
+  <li class="post-copyright-link">
+    <strong>本文链接：</strong>
+    <a href="http://yoursite.com/2019/01/24/CentOS7.5,CDH6%E5%AE%89%E8%A3%85%E9%83%A8%E7%BD%B2/" title="CentOS7.5+CDH6安装部署">http://yoursite.com/2019/01/24/CentOS7.5,CDH6安装部署/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/CDH/" rel="tag"># CDH</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2019/01/23/Azkaban-install/" rel="prev" title="Azkaban Install">
+      <i class="fa fa-chevron-left"></i> Azkaban Install
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2019/01/25/CDH6.0.1%20HUE%20%E8%AE%BF%E9%97%AEHBase%E6%8A%A5500%E9%94%99%E8%AF%AF%20%EF%BC%8C%E6%97%A0%E6%B3%95%E8%BF%9E%E6%8E%A5thrift/" rel="next" title="CDH6.0.1 HUE 访问HBase报500错误 ，无法连接thrift">
+      CDH6.0.1 HUE 访问HBase报500错误 ，无法连接thrift <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#集群规划"><span class="nav-number">1.</span> <span class="nav-text">集群规划</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-CDH简介"><span class="nav-number">1.0.1.</span> <span class="nav-text">1.CDH简介　</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-硬件配置"><span class="nav-number">1.0.2.</span> <span class="nav-text">2.硬件配置</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#软件配置"><span class="nav-number">1.0.3.</span> <span class="nav-text">软件配置</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#基础环境配置准备"><span class="nav-number">2.</span> <span class="nav-text">基础环境配置准备</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-关闭防火墙-master-slave1-2"><span class="nav-number">2.0.1.</span> <span class="nav-text">1.关闭防火墙[master,slave1-2]</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-selinux关闭-master-slave1-2"><span class="nav-number">2.0.2.</span> <span class="nav-text">2.selinux关闭[master,slave1-2]</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-hostname-config-master-slave1-2"><span class="nav-number">2.0.3.</span> <span class="nav-text">3.hostname config[master,slave1-2]</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#4-NTP服务器设置-master-slave1-2"><span class="nav-number">2.0.4.</span> <span class="nav-text">4.NTP服务器设置[master,slave1-2]</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#5-安装jdk-master-slave1-2"><span class="nav-number">2.0.5.</span> <span class="nav-text">5.安装jdk[master,slave1-2]</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#6-配置各节点之间ssh免密登录-master-slave1-2"><span class="nav-number">2.0.6.</span> <span class="nav-text">6. 配置各节点之间ssh免密登录[master,slave1-2]</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#7-优化虚拟内存需求率-master-slave1-2"><span class="nav-number">2.0.7.</span> <span class="nav-text">7.优化虚拟内存需求率[master,slave1-2]</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#8-解决透明大页面问题-master-slave1-2"><span class="nav-number">2.0.8.</span> <span class="nav-text">8. 解决透明大页面问题[master,slave1-2]</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#9-mysql安装"><span class="nav-number">2.0.9.</span> <span class="nav-text">9.mysql安装</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#10-拷贝mysql-connector-java到各个节点指定目录下-master-slave1-2"><span class="nav-number">2.0.10.</span> <span class="nav-text">10 拷贝mysql-connector-java到各个节点指定目录下[master,slave1-2]</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#11-创建数据库-172-20-32-37"><span class="nav-number">2.0.11.</span> <span class="nav-text">11.创建数据库[172.20.32.37]</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Cloudera-Manager安装"><span class="nav-number">3.</span> <span class="nav-text">Cloudera Manager安装</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1、配置-Cloudera-Manager-仓库master-slave1-2"><span class="nav-number">3.0.1.</span> <span class="nav-text">1、配置 Cloudera Manager 仓库master,slave1-2</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#构建本地仓库-2-任意服务器"><span class="nav-number">3.0.2.</span> <span class="nav-text">构建本地仓库(2) [任意服务器]</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#创建访问端口"><span class="nav-number">3.0.2.1.</span> <span class="nav-text">创建访问端口</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#构建yum源-master-slave1-2"><span class="nav-number">3.0.2.2.</span> <span class="nav-text">构建yum源[master,slave1-2]</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-安装-CM-Server-和-Agent"><span class="nav-number">3.0.3.</span> <span class="nav-text">2.安装 CM Server 和 Agent</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-设置-Cloudera-Manager-数据库"><span class="nav-number">3.0.4.</span> <span class="nav-text">3.设置 Cloudera Manager 数据库</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#4-安装-CDH-master"><span class="nav-number">3.0.5.</span> <span class="nav-text">4.安装 CDH[master]</span></a></li></ol></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="king"
+      src="/images/cat.png">
+  <p class="site-author-name" itemprop="name">king</p>
+  <div class="site-description" itemprop="description">诸天气荡荡,我道日兴隆</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives">
+          <span class="site-state-item-count">20</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">15</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/wangshubing1" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;wangshubing1" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:wang_shubing@126.com" title="E-Mail → mailto:wang_shubing@126.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/TXBSW" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;TXBSW" rel="noopener" target="_blank"><i class="copyright fa-fw"></i>CSDN</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.jianshu.com/u/98ab302c7f1a" title="简书 → https:&#x2F;&#x2F;www.jianshu.com&#x2F;u&#x2F;98ab302c7f1a" rel="noopener" target="_blank"><i class="heartbeat fa-fw"></i>简书</a>
+      </span>
+  </div>
+  <div class="cc-license motion-element" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" rel="noopener" target="_blank"><img src="/images/cc-by-nc-sa.svg" alt="Creative Commons"></a>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">king</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/lozad@1/dist/lozad.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

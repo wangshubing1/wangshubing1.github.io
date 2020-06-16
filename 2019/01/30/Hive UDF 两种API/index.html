@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Monda:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  <link rel="stylesheet" href="/lib/pace/pace-theme-minimal.min.css">
+  <script src="/lib/pace/pace.min.js"></script>
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"yoursite.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="编写Apache Hive用户自定义函数（UDF）有两个不同的接口 简单API：org.apache.hadoop.hive.ql.exec.UDF  复杂API：  org.apache.hadoop.hive.ql.udf.generic.GenericUDF  如果你的函数读和返回都是基础数据类型（Hadoop&amp;Hive 基本writable类型，如Text,IntWritable,">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Hive UDF 两种API">
+<meta property="og:url" content="http://yoursite.com/2019/01/30/Hive%20UDF%20%E4%B8%A4%E7%A7%8DAPI/index.html">
+<meta property="og:site_name" content="诗与远方">
+<meta property="og:description" content="编写Apache Hive用户自定义函数（UDF）有两个不同的接口 简单API：org.apache.hadoop.hive.ql.exec.UDF  复杂API：  org.apache.hadoop.hive.ql.udf.generic.GenericUDF  如果你的函数读和返回都是基础数据类型（Hadoop&amp;Hive 基本writable类型，如Text,IntWritable,">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2019-01-30T06:01:17.905Z">
+<meta property="article:modified_time" content="2019-01-30T06:01:17.905Z">
+<meta property="article:author" content="king">
+<meta property="article:tag" content="UDF">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://yoursite.com/2019/01/30/Hive%20UDF%20%E4%B8%A4%E7%A7%8DAPI/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>Hive UDF 两种API | 诗与远方</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">诗与远方</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">人道渺渺,仙道莽莽</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/01/30/Hive%20UDF%20%E4%B8%A4%E7%A7%8DAPI/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/cat.png">
+      <meta itemprop="name" content="king">
+      <meta itemprop="description" content="诸天气荡荡,我道日兴隆">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="诗与远方">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Hive UDF 两种API
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-01-30 14:01:17" itemprop="dateCreated datePublished" datetime="2019-01-30T14:01:17+08:00">2019-01-30</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/hive/" itemprop="url" rel="index"><span itemprop="name">hive</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h5 id="编写Apache-Hive用户自定义函数（UDF）有两个不同的接口"><a href="#编写Apache-Hive用户自定义函数（UDF）有两个不同的接口" class="headerlink" title="编写Apache Hive用户自定义函数（UDF）有两个不同的接口"></a>编写Apache Hive用户自定义函数（UDF）有两个不同的接口</h5><ul>
+<li><p>简单API：org.apache.hadoop.hive.ql.exec.UDF</p>
+</li>
+<li><p>复杂API：  org.apache.hadoop.hive.ql.udf.generic.GenericUDF</p>
+</li>
+<li><p>如果你的函数读和返回都是基础数据类型（Hadoop&amp;Hive 基本writable类型，如Text,IntWritable,LongWriable,DoubleWritable等等），那么简单的API（org.apache.hadoop.hive.ql.exec.UDF）可以胜任</p>
+</li>
+<li><p>但是，如果你想写一个UDF用来操作内嵌数据结构，如Map，List和Set，那么你要去熟悉org.apache.hadoop.hive.ql.udf.generic.GenericUDF这个API</p>
+<h2 id="简单API"><a href="#简单API" class="headerlink" title="简单API"></a>简单API</h2><p>用简单UDF API来构建一个UDF只涉及到编写一个类继承实现一个方法（evaluate），以下是示例：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">SimpleUDFExample</span> <span class="keyword">extends</span> <span class="title">UDF</span> </span>&#123;  </span><br><span class="line">    </span><br><span class="line">  <span class="function"><span class="keyword">public</span> Text <span class="title">evaluate</span><span class="params">(Text input)</span> </span>&#123;  </span><br><span class="line">    <span class="keyword">if</span>(input == <span class="keyword">null</span>) <span class="keyword">return</span> <span class="keyword">null</span>;  </span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">new</span> Text(<span class="string">"Hello "</span> + input.toString());  </span><br><span class="line">  &#125;  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>然后加了一个测试去验证它</p>
+</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Test</span>  </span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">testUDFNullCheck</span><span class="params">()</span> </span>&#123;  </span><br><span class="line">  SimpleUDFExample example = <span class="keyword">new</span> SimpleUDFExample();  </span><br><span class="line">  Assert.assertNull(example.evaluate(<span class="keyword">null</span>));  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="复杂的API"><a href="#复杂的API" class="headerlink" title="复杂的API"></a>复杂的API</h2><p>org.apache.hadoop.hive.ql.udf.generic.GenericUDF API提供了一种方法去处理那些不是可写类型的对象，例如：struct，map和array类型。</p>
+<p>这个API需要你亲自去为函数的参数去管理对象存储格式（object inspectors），验证接收的参数的数量与类型。一个object inspector为内在的数据类型提供一个一致性接口，以至不同实现的对象可以在hive中以一致的方式去访问（例如，只要你能提供一个对应的object inspector，你可以实现一个如Map的复合对象）。</p>
+<p>这个API要求你去实现以下方法：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 这个类似于简单API的evaluat方法，它可以读取输入数据和返回结果  </span></span><br><span class="line"><span class="function"><span class="keyword">abstract</span> Object <span class="title">evaluate</span><span class="params">(GenericUDF.DeferredObject[] arguments)</span></span>;  </span><br><span class="line">  </span><br><span class="line"><span class="comment">// 该方法无关紧要，我们可以返回任何东西，但应当是描述该方法的字符串  </span></span><br><span class="line"><span class="function"><span class="keyword">abstract</span> String <span class="title">getDisplayString</span><span class="params">(String[] children)</span></span>;  </span><br><span class="line">  </span><br><span class="line"><span class="comment">// 只调用一次，在任何evaluate()调用之前，你可以接收到一个可以表示函数输入参数类型的object inspectors数组  </span></span><br><span class="line"><span class="comment">// 这是你用来验证该函数是否接收正确的参数类型和参数个数的地方  </span></span><br><span class="line"><span class="function"><span class="keyword">abstract</span> ObjectInspector <span class="title">initialize</span><span class="params">(ObjectInspector[] arguments)</span></span>;</span><br></pre></td></tr></table></figure>
+<h3 id="示例"><a href="#示例" class="headerlink" title="示例"></a>示例</h3><p>我将通过建立一个UDF函数：containsString，来加深对该API了解，该函数接收两个参数：</p>
+<p>一个String的列表（list）</p>
+<p>一个String</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">containsString(List(<span class="string">"a"</span>, <span class="string">"b"</span>, <span class="string">"c"</span>), <span class="string">"b"</span>); <span class="comment">// true  </span></span><br><span class="line">containsString(List(<span class="string">"a"</span>, <span class="string">"b"</span>, <span class="string">"c"</span>), <span class="string">"d"</span>); <span class="comment">// false</span></span><br></pre></td></tr></table></figure>
+<p>不同于UDF接口</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">ComplexUDFExample</span> <span class="keyword">extends</span> <span class="title">GenericUDF</span> </span>&#123;  </span><br><span class="line">  </span><br><span class="line">  ListObjectInspector listOI;  </span><br><span class="line">  StringObjectInspector elementOI;  </span><br><span class="line">  </span><br><span class="line">  <span class="meta">@Override</span>  </span><br><span class="line">  <span class="function"><span class="keyword">public</span> String <span class="title">getDisplayString</span><span class="params">(String[] arg0)</span> </span>&#123;  </span><br><span class="line">    <span class="keyword">return</span> <span class="string">"arrayContainsExample()"</span>; <span class="comment">// this should probably be better  </span></span><br><span class="line">  &#125;  </span><br><span class="line">  </span><br><span class="line">  <span class="meta">@Override</span>  </span><br><span class="line">  <span class="function"><span class="keyword">public</span> ObjectInspector <span class="title">initialize</span><span class="params">(ObjectInspector[] arguments)</span> <span class="keyword">throws</span> UDFArgumentException </span>&#123;  </span><br><span class="line">    <span class="keyword">if</span> (arguments.length != <span class="number">2</span>) &#123;  </span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> UDFArgumentLengthException(<span class="string">"arrayContainsExample only takes 2 arguments: List&lt;T&gt;, T"</span>);  </span><br><span class="line">    &#125;  </span><br><span class="line">    <span class="comment">// 1. 检查是否接收到正确的参数类型  </span></span><br><span class="line">    ObjectInspector a = arguments[<span class="number">0</span>];  </span><br><span class="line">    ObjectInspector b = arguments[<span class="number">1</span>];  </span><br><span class="line">    <span class="keyword">if</span> (!(a <span class="keyword">instanceof</span> ListObjectInspector) || !(b <span class="keyword">instanceof</span> StringObjectInspector)) &#123;  </span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> UDFArgumentException(<span class="string">"first argument must be a list / array, second argument must be a string"</span>);  </span><br><span class="line">    &#125;  </span><br><span class="line">    <span class="keyword">this</span>.listOI = (ListObjectInspector) a;  </span><br><span class="line">    <span class="keyword">this</span>.elementOI = (StringObjectInspector) b;  </span><br><span class="line">      </span><br><span class="line">    <span class="comment">// 2. 检查list是否包含的元素都是string  </span></span><br><span class="line">    <span class="keyword">if</span>(!(listOI.getListElementObjectInspector() <span class="keyword">instanceof</span> StringObjectInspector)) &#123;  </span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> UDFArgumentException(<span class="string">"first argument must be a list of strings"</span>);  </span><br><span class="line">    &#125;  </span><br><span class="line">      </span><br><span class="line">    <span class="comment">// 返回类型是boolean，所以我们提供了正确的object inspector  </span></span><br><span class="line">    <span class="keyword">return</span> PrimitiveObjectInspectorFactory.javaBooleanObjectInspector;  </span><br><span class="line">  &#125;  </span><br><span class="line">    </span><br><span class="line">  <span class="meta">@Override</span>  </span><br><span class="line">  <span class="function"><span class="keyword">public</span> Object <span class="title">evaluate</span><span class="params">(DeferredObject[] arguments)</span> <span class="keyword">throws</span> HiveException </span>&#123;  </span><br><span class="line">      </span><br><span class="line">    <span class="comment">// 利用object inspectors从传递的对象中得到list与string  </span></span><br><span class="line">    List&lt;String&gt; list = (List&lt;String&gt;) <span class="keyword">this</span>.listOI.getList(arguments[<span class="number">0</span>].get());  </span><br><span class="line">    String arg = elementOI.getPrimitiveJavaObject(arguments[<span class="number">1</span>].get());  </span><br><span class="line">      </span><br><span class="line">    <span class="comment">// 检查空值  </span></span><br><span class="line">    <span class="keyword">if</span> (list == <span class="keyword">null</span> || arg == <span class="keyword">null</span>) &#123;  </span><br><span class="line">      <span class="keyword">return</span> <span class="keyword">null</span>;  </span><br><span class="line">    &#125;  </span><br><span class="line">      </span><br><span class="line">    <span class="comment">// 判断是否list中包含目标值  </span></span><br><span class="line">    <span class="keyword">for</span>(String s: list) &#123;  </span><br><span class="line">      <span class="keyword">if</span> (arg.equals(s)) <span class="keyword">return</span> <span class="keyword">new</span> Boolean(<span class="keyword">true</span>);  </span><br><span class="line">    &#125;  </span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">new</span> Boolean(<span class="keyword">false</span>);  </span><br><span class="line">  &#125;  </span><br><span class="line">    </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码走读<br>函数的调用模块如下：</p>
+<p>1、该UDF用默认的构造器来初始化</p>
+<p>2、udf.initialize() 被调用，传人udf参数的object instructors数组，（ListObjectInstructor, StringObjectInstructor）</p>
+<p>1) 检查传人的参数有两个与该参数的数据类型是正确的（见上面）<br>2) 我们保存object instructors用以供evaluate()使用（listOI, elementOI）<br>3) 返回 object inspector，让Hive能够读取该函数的返回结果（BooleanObjectInspector）</p>
+<p>3、对于查询中的每一行，evaluate方法都会被调用，传人该行的指定的列（例如，evaluate(List(“a”, “b”, “c”), “c”) ）。</p>
+<p>1) 我们利用initialize方法中存储的object instructors来抽取出正确的值。<br>2) 我们在这处理我们的逻辑然后用initialize返回的object inspector来序列化返回来的值(list.contains(elemement) ? true : false)。</p>
+<h3 id="test"><a href="#test" class="headerlink" title="test"></a>test</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">ComplexUDFExampleTest</span> </span>&#123;  </span><br><span class="line">    </span><br><span class="line">  <span class="meta">@Test</span>  </span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">testComplexUDFReturnsCorrectValues</span><span class="params">()</span> <span class="keyword">throws</span> HiveException </span>&#123;  </span><br><span class="line">      </span><br><span class="line">    <span class="comment">// 建立需要的模型  </span></span><br><span class="line">    ComplexUDFExample example = <span class="keyword">new</span> ComplexUDFExample();  </span><br><span class="line">    ObjectInspector stringOI = PrimitiveObjectInspectorFactory.javaStringObjectInspector;  </span><br><span class="line">    ObjectInspector listOI = ObjectInspectorFactory.getStandardListObjectInspector(stringOI);  </span><br><span class="line">    JavaBooleanObjectInspector resultInspector = (JavaBooleanObjectInspector) example.initialize(<span class="keyword">new</span> ObjectInspector[]&#123;listOI, stringOI&#125;);  </span><br><span class="line">      </span><br><span class="line">    <span class="comment">// create the actual UDF arguments  </span></span><br><span class="line">    List&lt;String&gt; list = <span class="keyword">new</span> ArrayList&lt;String&gt;();  </span><br><span class="line">    list.add(<span class="string">"a"</span>);  </span><br><span class="line">    list.add(<span class="string">"b"</span>);  </span><br><span class="line">    list.add(<span class="string">"c"</span>);  </span><br><span class="line">      </span><br><span class="line">    <span class="comment">// 测试结果  </span></span><br><span class="line">      </span><br><span class="line">    <span class="comment">// 存在的值  </span></span><br><span class="line">    Object result = example.evaluate(<span class="keyword">new</span> DeferredObject[]&#123;<span class="keyword">new</span> DeferredJavaObject(list), <span class="keyword">new</span> DeferredJavaObject(<span class="string">"a"</span>)&#125;);  </span><br><span class="line">    Assert.assertEquals(<span class="keyword">true</span>, resultInspector.get(result));  </span><br><span class="line">      </span><br><span class="line">    <span class="comment">// 不存在的值  </span></span><br><span class="line">    Object result2 = example.evaluate(<span class="keyword">new</span> DeferredObject[]&#123;<span class="keyword">new</span> DeferredJavaObject(list), <span class="keyword">new</span> DeferredJavaObject(<span class="string">"d"</span>)&#125;);  </span><br><span class="line">    Assert.assertEquals(<span class="keyword">false</span>, resultInspector.get(result2));  </span><br><span class="line">      </span><br><span class="line">    <span class="comment">// 为null的参数  </span></span><br><span class="line">    Object result3 = example.evaluate(<span class="keyword">new</span> DeferredObject[]&#123;<span class="keyword">new</span> DeferredJavaObject(<span class="keyword">null</span>), <span class="keyword">new</span> DeferredJavaObject(<span class="keyword">null</span>)&#125;);  </span><br><span class="line">    Assert.assertNull(result3);  </span><br><span class="line">  &#125;  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+    </div>
+
+    
+    
+    
+        
+
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>本文作者： </strong>king
+  </li>
+  <li class="post-copyright-link">
+    <strong>本文链接：</strong>
+    <a href="http://yoursite.com/2019/01/30/Hive%20UDF%20%E4%B8%A4%E7%A7%8DAPI/" title="Hive UDF 两种API">http://yoursite.com/2019/01/30/Hive UDF 两种API/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/UDF/" rel="tag"># UDF</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2019/01/30/hive-udf%E5%87%BD%E6%95%B0/" rel="prev" title="hive-udf函数">
+      <i class="fa fa-chevron-left"></i> hive-udf函数
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2019/01/31/Hive%E6%B3%A8%E9%87%8A%E4%B8%AD%E6%96%87%E4%B9%B1%E7%A0%81/" rel="next" title="Hive注释中文乱码">
+      Hive注释中文乱码 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-5"><a class="nav-link" href="#编写Apache-Hive用户自定义函数（UDF）有两个不同的接口"><span class="nav-number">1.</span> <span class="nav-text">编写Apache Hive用户自定义函数（UDF）有两个不同的接口</span></a></li></ol></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#简单API"><span class="nav-number"></span> <span class="nav-text">简单API</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#复杂的API"><span class="nav-number"></span> <span class="nav-text">复杂的API</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#示例"><span class="nav-number"></span> <span class="nav-text">示例</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#test"><span class="nav-number"></span> <span class="nav-text">test</span></a></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="king"
+      src="/images/cat.png">
+  <p class="site-author-name" itemprop="name">king</p>
+  <div class="site-description" itemprop="description">诸天气荡荡,我道日兴隆</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives">
+          <span class="site-state-item-count">20</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">15</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/wangshubing1" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;wangshubing1" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:wang_shubing@126.com" title="E-Mail → mailto:wang_shubing@126.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/TXBSW" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;TXBSW" rel="noopener" target="_blank"><i class="copyright fa-fw"></i>CSDN</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.jianshu.com/u/98ab302c7f1a" title="简书 → https:&#x2F;&#x2F;www.jianshu.com&#x2F;u&#x2F;98ab302c7f1a" rel="noopener" target="_blank"><i class="heartbeat fa-fw"></i>简书</a>
+      </span>
+  </div>
+  <div class="cc-license motion-element" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" rel="noopener" target="_blank"><img src="/images/cc-by-nc-sa.svg" alt="Creative Commons"></a>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">king</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/lozad@1/dist/lozad.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

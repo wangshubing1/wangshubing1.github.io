@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Monda:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  <link rel="stylesheet" href="/lib/pace/pace-theme-minimal.min.css">
+  <script src="/lib/pace/pace.min.js"></script>
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"yoursite.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="本次采用Streamsets作为数据管道，将Mongo数据同步至kudu  一.数据起点 从图中我们可以看到关于Mongo的有两个数据起点 MongoDBMongoDB源从MongoDB读取数据.MongoDB源自上限和无上限集合 MongoDBOplogMongoDB Oplog源从MongoDB Oplog读取条目,MongoDB将有关数据库更改的信息存储在名为Oplog的本地上限集合中。Op">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Streamsets Mongo to Kudu">
+<meta property="og:url" content="http://yoursite.com/2019/08/08/StreamSets%20Mongo%20to%20kudu/index.html">
+<meta property="og:site_name" content="诗与远方">
+<meta property="og:description" content="本次采用Streamsets作为数据管道，将Mongo数据同步至kudu  一.数据起点 从图中我们可以看到关于Mongo的有两个数据起点 MongoDBMongoDB源从MongoDB读取数据.MongoDB源自上限和无上限集合 MongoDBOplogMongoDB Oplog源从MongoDB Oplog读取条目,MongoDB将有关数据库更改的信息存储在名为Oplog的本地上限集合中。Op">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://m.qpic.cn/psb?/V13VPBDG4Ve2nJ/vJAit.3xhuTQBg30jh7JIUhKqOr41UAJIJfMHYGQuCo!/b/dMMAAAAAAAAA&bo=6AQeAQAAAAARB8M!&rf=viewer_4">
+<meta property="og:image" content="http://m.qpic.cn/psb?/V13VPBDG4Ve2nJ/gjQw2cp6byGRIczq3KWcqQ8q2D0ecOnb5d5GSNGUwus!/b/dL8AAAAAAAAA&bo=twACAQAAAAARB4Q!&rf=viewer_4">
+<meta property="og:image" content="http://m.qpic.cn/psb?/V13VPBDG4Ve2nJ/o5RyV9Npq9GQDkB3oWa3kicr.praoylMhRdnxQC0Ybw!/b/dLgAAAAAAAAA&bo=aAXtAgAAAAARB7I!&rf=viewer_4">
+<meta property="og:image" content="http://m.qpic.cn/psb?/V13VPBDG4Ve2nJ/sXpFjBnfcISqZj6S1hEUby2M54aLECrUlwvgt1RlIBQ!/b/dMUAAAAAAAAA&bo=KwW5AQAAAAARB6Y!&rf=viewer_4">
+<meta property="og:image" content="http://m.qpic.cn/psb?/V13VPBDG4Ve2nJ/8s1om94YpWGJGQRNP26Fedwga7aNQX2oBCFg*qpLEMs!/b/dFIBAAAAAAAA&bo=*gSsAgAAAAARB2Q!&rf=viewer_4">
+<meta property="og:image" content="http://m.qpic.cn/psb?/V13VPBDG4Ve2nJ/wpiOGabHgTfYrSYdb.Onsh50OUxZQSDcBbGoVmBOfZQ!/b/dL8AAAAAAAAA&bo=.gRJAQAAAAARB4Y!&rf=viewer_4">
+<meta property="og:image" content="http://m.qpic.cn/psb?/V13VPBDG4Ve2nJ/zuYL.UScwtIHtijTDXMxV1XH51PxgL3BGpzTLOLXyEc!/b/dL8AAAAAAAAA&bo=aAWJAQAAAAARB9U!&rf=viewer_4">
+<meta property="article:published_time" content="2019-08-08T02:42:23.782Z">
+<meta property="article:modified_time" content="2019-08-08T02:42:23.927Z">
+<meta property="article:author" content="king">
+<meta property="article:tag" content="Streamsets">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://m.qpic.cn/psb?/V13VPBDG4Ve2nJ/vJAit.3xhuTQBg30jh7JIUhKqOr41UAJIJfMHYGQuCo!/b/dMMAAAAAAAAA&bo=6AQeAQAAAAARB8M!&rf=viewer_4">
+
+<link rel="canonical" href="http://yoursite.com/2019/08/08/StreamSets%20Mongo%20to%20kudu/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>Streamsets Mongo to Kudu | 诗与远方</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">诗与远方</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">人道渺渺,仙道莽莽</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/08/08/StreamSets%20Mongo%20to%20kudu/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/cat.png">
+      <meta itemprop="name" content="king">
+      <meta itemprop="description" content="诸天气荡荡,我道日兴隆">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="诗与远方">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Streamsets Mongo to Kudu
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-08-08 10:42:23" itemprop="dateCreated datePublished" datetime="2019-08-08T10:42:23+08:00">2019-08-08</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Streamsets/" itemprop="url" rel="index"><span itemprop="name">Streamsets</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>本次采用Streamsets作为数据管道，将Mongo数据同步至kudu</p>
+<p><img data-src="http://m.qpic.cn/psb?/V13VPBDG4Ve2nJ/vJAit.3xhuTQBg30jh7JIUhKqOr41UAJIJfMHYGQuCo!/b/dMMAAAAAAAAA&bo=6AQeAQAAAAARB8M!&rf=viewer_4" alt="image"></p>
+<h1 id="一-数据起点"><a href="#一-数据起点" class="headerlink" title="一.数据起点"></a>一.数据起点</h1><p><img data-src="http://m.qpic.cn/psb?/V13VPBDG4Ve2nJ/gjQw2cp6byGRIczq3KWcqQ8q2D0ecOnb5d5GSNGUwus!/b/dL8AAAAAAAAA&bo=twACAQAAAAARB4Q!&rf=viewer_4" alt="image"></p>
+<p>从图中我们可以看到关于Mongo的有两个数据起点</p>
+<h2 id="MongoDB"><a href="#MongoDB" class="headerlink" title="MongoDB"></a>MongoDB</h2><p>MongoDB源从MongoDB读取数据.MongoDB源自上限和无上限集合</p>
+<h2 id="MongoDBOplog"><a href="#MongoDBOplog" class="headerlink" title="MongoDBOplog"></a>MongoDBOplog</h2><p>MongoDB Oplog源从MongoDB Oplog读取条目,<br>MongoDB将有关数据库更改的信息存储在名为Oplog的本地上限集合中。Oplog包含有关数据更改以及数据库更改的信息。MongoDB Oplog源可以读取写入Oplog的任何操作。</p>
+<p>使用MongoDB Oplog源来捕获数据或数据库中的更改。要处理写入标准上限或无上限集合的MongoDB数据，请使用MongoDB源</p>
+<p>MongoDB Oplog源包含记录头属性中的CRUD操作类型，因此生成的记录可以由启用CRUD的目标轻松处理</p>
+<p>本次要抽取的两个集合为非上限集合，因为存取的为日志数据无需更新与删除操作故采用MongoDB数据源</p>
+<h3 id="MongoDB连接"><a href="#MongoDB连接" class="headerlink" title="MongoDB连接"></a>MongoDB连接</h3><p><img data-src="http://m.qpic.cn/psb?/V13VPBDG4Ve2nJ/o5RyV9Npq9GQDkB3oWa3kicr.praoylMhRdnxQC0Ybw!/b/dLgAAAAAAAAA&bo=aAXtAgAAAAARB7I!&rf=viewer_4" alt="image"></p>
+<ul>
+<li>单节点连接<figure class="highlight markdown"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mongodb://username:password@host[<span class="string">:port</span>][<span class="symbol">/[database</span>][<span class="string">?options</span>]]</span><br></pre></td></tr></table></figure></li>
+<li>多节点连接</li>
+</ul>
+<figure class="highlight markdown"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mongodb://host1[<span class="string">:port1</span>][<span class="symbol">,host2[:port2</span>],...[<span class="string">,hostN[:portN</span>]]][<span class="string">/[database</span>][<span class="symbol">?options</span>]]</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>详情参阅:<a href="https://streamsets.com/documentation/controlhub/latest/onpremhelp/datacollector/UserGuide/Origins/MongoDB.html#concept_bk4_2rs_ns" target="_blank" rel="noopener">MongoDB 源</a></p>
+</blockquote>
+<h1 id="二-数据转换"><a href="#二-数据转换" class="headerlink" title="二.数据转换"></a>二.数据转换</h1><h2 id="Kafka"><a href="#Kafka" class="headerlink" title="Kafka"></a>Kafka</h2><h3 id="KafkaProducer"><a href="#KafkaProducer" class="headerlink" title="KafkaProducer"></a>KafkaProducer</h3><ul>
+<li>kafka<br><img data-src="http://m.qpic.cn/psb?/V13VPBDG4Ve2nJ/sXpFjBnfcISqZj6S1hEUby2M54aLECrUlwvgt1RlIBQ!/b/dMUAAAAAAAAA&bo=KwW5AQAAAAARB6Y!&rf=viewer_4" alt="image"><br>如图所示<h3 id="KafkaConsumer"><a href="#KafkaConsumer" class="headerlink" title="KafkaConsumer"></a>KafkaConsumer</h3></li>
+<li>kafka<br><img data-src="http://m.qpic.cn/psb?/V13VPBDG4Ve2nJ/8s1om94YpWGJGQRNP26Fedwga7aNQX2oBCFg*qpLEMs!/b/dFIBAAAAAAAA&bo=*gSsAgAAAAARB2Q!&rf=viewer_4" alt="image"></li>
+<li>Dataformat<br><img data-src="http://m.qpic.cn/psb?/V13VPBDG4Ve2nJ/wpiOGabHgTfYrSYdb.Onsh50OUxZQSDcBbGoVmBOfZQ!/b/dL8AAAAAAAAA&bo=.gRJAQAAAAARB4Y!&rf=viewer_4" alt="image"><h2 id="数据转换"><a href="#数据转换" class="headerlink" title="数据转换"></a>数据转换</h2></li>
+</ul>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">    <span class="attr">"_id"</span> : <span class="string">"5c89b9ee2c9d450014bd5aa8"</span>,</span><br><span class="line">    <span class="attr">"_class"</span> : <span class="string">"com.belle.petrel.entity.BehaviourRecord"</span>,</span><br><span class="line">    <span class="attr">"loginName"</span> : <span class="string">"admin"</span>,</span><br><span class="line">    <span class="attr">"userName"</span> : <span class="string">"超级管理员"</span>,</span><br><span class="line">    <span class="attr">"requestURI"</span> : <span class="string">"GET/petrel/petrel-itg-api/sysOrganization/byParams"</span>,</span><br><span class="line">    <span class="attr">"queryParams"</span> : <span class="string">"&#123;\"resCode\":[\"2\"],\"parentId\":[\"0\"]&#125;"</span>,</span><br><span class="line">    <span class="attr">"remoteAddr"</span> : <span class="string">"172.17.225.164"</span>,</span><br><span class="line">    <span class="attr">"userAgent"</span> : <span class="string">"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.109 Safari/537.36"</span>,</span><br><span class="line">    <span class="attr">"operateTime"</span> : <span class="number">1552526382287</span>,</span><br><span class="line">    <span class="attr">"flag"</span> : <span class="string">"1"</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>我采用的是Jython</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> time</span><br><span class="line"><span class="keyword">import</span> datetime</span><br><span class="line"><span class="keyword">for</span> record <span class="keyword">in</span> records:</span><br><span class="line">  operate_smonth = time.strftime(<span class="string">"%Y-%m"</span>, time.localtime(record.value[<span class="string">'operateTime'</span>]/<span class="number">1000</span>))</span><br><span class="line">  operateTimes = time.strftime(<span class="string">"%Y-%m-%d %H:%M:%S"</span>, time.localtime(record.value[<span class="string">'operateTime'</span>]/<span class="number">1000</span>))</span><br><span class="line">  record.value[<span class="string">'operate_smonth'</span>] = operate_smonth</span><br><span class="line">  record.value[<span class="string">'ods_update_time'</span>] = datetime.datetime.now().strftime(<span class="string">"%Y-%m-%d %H:%M:%S"</span>)</span><br><span class="line">  record.value[<span class="string">'operateTime'</span>] = operateTimes</span><br><span class="line">  record.attributes[<span class="string">'sdc.operation.type'</span>]=<span class="string">'4'</span></span><br><span class="line">  record.value[<span class="string">'Type'</span>]=<span class="string">'UPSERT'</span></span><br><span class="line">  <span class="keyword">for</span> key <span class="keyword">in</span> record.value.keys():</span><br><span class="line">	record.value.setdefault(key,<span class="string">''</span>)</span><br><span class="line">  <span class="keyword">try</span>:</span><br><span class="line">    output.write(record)</span><br><span class="line"></span><br><span class="line">  <span class="keyword">except</span> Exception <span class="keyword">as</span> e:</span><br><span class="line">    <span class="comment"># Send record to error</span></span><br><span class="line">    error.write(record, str(e))</span><br></pre></td></tr></table></figure>
+<ul>
+<li>operate_smonth:根据从Mongo传过来的字段operateTime转换得到<blockquote>
+<p>前面我们在KakfaConsumer的kafka配置页中的Auto Offset Reset选项选的是Timestamp,所以到后面的operateTime是时间戳类型，我们需要新增加一个只年月的operate_smonth的字段</p>
+</blockquote>
+</li>
+<li>ods_update_time:kudu的入库时间，截取的是系统当前的时间<h1 id="三-数据落地"><a href="#三-数据落地" class="headerlink" title="三.数据落地"></a>三.数据落地</h1><h2 id="kudu"><a href="#kudu" class="headerlink" title="kudu"></a>kudu</h2><img data-src="http://m.qpic.cn/psb?/V13VPBDG4Ve2nJ/zuYL.UScwtIHtijTDXMxV1XH51PxgL3BGpzTLOLXyEc!/b/dL8AAAAAAAAA&bo=aAWJAQAAAAARB9U!&rf=viewer_4" alt="image"></li>
+</ul>
+<h2 id="kudu建表语句"><a href="#kudu建表语句" class="headerlink" title="kudu建表语句"></a>kudu建表语句</h2><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> p_ods.ods_bas_bhv_menu_record  (</span><br><span class="line">_id <span class="keyword">string</span>  <span class="keyword">comment</span> <span class="string">'mongo_ID'</span>,</span><br><span class="line">operate_smonth <span class="keyword">string</span> <span class="keyword">comment</span> <span class="string">'操作月份'</span>,</span><br><span class="line">_class  <span class="keyword">string</span> <span class="keyword">comment</span> <span class="string">''</span>,</span><br><span class="line">loginName <span class="keyword">string</span> <span class="keyword">comment</span> <span class="string">'登录名'</span>,</span><br><span class="line">userName <span class="keyword">string</span> <span class="keyword">comment</span> <span class="string">'用户名'</span>,</span><br><span class="line">requestURI <span class="keyword">string</span> <span class="keyword">comment</span> <span class="string">'操作URI'</span>,</span><br><span class="line">queryParams <span class="keyword">string</span> <span class="keyword">comment</span> <span class="string">'请求参数'</span>,</span><br><span class="line">remoteAddr <span class="keyword">string</span> <span class="keyword">comment</span> <span class="string">'操作人ip'</span>,</span><br><span class="line">userAgent <span class="keyword">string</span> <span class="keyword">comment</span> <span class="string">'用户系统信息'</span>,</span><br><span class="line">operateTime <span class="keyword">string</span> <span class="keyword">comment</span> <span class="string">'操作时间'</span>,</span><br><span class="line">flag <span class="keyword">string</span> <span class="keyword">comment</span> <span class="string">'是否拆分标记，1-未拆分，2-已拆分'</span>,</span><br><span class="line">ods_update_time <span class="keyword">string</span> <span class="keyword">comment</span> <span class="string">'ods入库时间'</span>,</span><br><span class="line">PRIMARY <span class="keyword">KEY</span> (_id, operate_smonth)</span><br><span class="line">)</span><br><span class="line"><span class="keyword">PARTITION</span> <span class="keyword">BY</span> <span class="keyword">RANGE</span> (operate_smonth) (</span><br><span class="line">    <span class="keyword">PARTITION</span> <span class="keyword">VALUE</span> = <span class="string">'2018-07'</span>,</span><br><span class="line">    <span class="keyword">PARTITION</span> <span class="keyword">VALUE</span> = <span class="string">'2018-08'</span>,</span><br><span class="line">    <span class="keyword">PARTITION</span> <span class="keyword">VALUE</span> = <span class="string">'2018-09'</span>,</span><br><span class="line">    <span class="keyword">PARTITION</span> <span class="keyword">VALUE</span> = <span class="string">'2018-10'</span>,</span><br><span class="line">    <span class="keyword">PARTITION</span> <span class="keyword">VALUE</span> = <span class="string">'2018-11'</span>,</span><br><span class="line">    <span class="keyword">PARTITION</span> <span class="keyword">VALUE</span> = <span class="string">'2018-12'</span>,</span><br><span class="line">    <span class="keyword">PARTITION</span> <span class="keyword">VALUE</span> = <span class="string">'2019-01'</span>,</span><br><span class="line">    <span class="keyword">PARTITION</span> <span class="keyword">VALUE</span> = <span class="string">'2019-02'</span>,</span><br><span class="line">    <span class="keyword">PARTITION</span> <span class="keyword">VALUE</span> = <span class="string">'2019-03'</span>,</span><br><span class="line">    <span class="keyword">PARTITION</span> <span class="keyword">VALUE</span> = <span class="string">'2019-04'</span>,</span><br><span class="line">    <span class="keyword">PARTITION</span> <span class="keyword">VALUE</span> = <span class="string">'2019-05'</span>,</span><br><span class="line">    <span class="keyword">PARTITION</span> <span class="keyword">VALUE</span> = <span class="string">'2019-06'</span>,</span><br><span class="line">    <span class="keyword">PARTITION</span> <span class="keyword">VALUE</span> = <span class="string">'2019-07'</span>,</span><br><span class="line">    <span class="keyword">PARTITION</span> <span class="keyword">VALUE</span> = <span class="string">'2019-08'</span>,</span><br><span class="line">    <span class="keyword">PARTITION</span> <span class="keyword">VALUE</span> = <span class="string">'2019-09'</span>,</span><br><span class="line">    <span class="keyword">PARTITION</span> <span class="keyword">VALUE</span> = <span class="string">'2019-10'</span>,</span><br><span class="line">    <span class="keyword">PARTITION</span> <span class="keyword">VALUE</span> = <span class="string">'2019-11'</span>,</span><br><span class="line">    <span class="keyword">PARTITION</span> <span class="keyword">VALUE</span> = <span class="string">'2019-12'</span></span><br><span class="line">)</span><br><span class="line"><span class="keyword">STORED</span> <span class="keyword">AS</span> KUDU;</span><br></pre></td></tr></table></figure>
+
+
+    </div>
+
+    
+    
+    
+        
+
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>本文作者： </strong>king
+  </li>
+  <li class="post-copyright-link">
+    <strong>本文链接：</strong>
+    <a href="http://yoursite.com/2019/08/08/StreamSets%20Mongo%20to%20kudu/" title="Streamsets Mongo to Kudu">http://yoursite.com/2019/08/08/StreamSets Mongo to kudu/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Streamsets/" rel="tag"># Streamsets</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2019/04/10/Hive%20Lock/" rel="prev" title="hive lock">
+      <i class="fa fa-chevron-left"></i> hive lock
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2020/06/16/hello-world/" rel="next" title="Hello World">
+      Hello World <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#一-数据起点"><span class="nav-number">1.</span> <span class="nav-text">一.数据起点</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#MongoDB"><span class="nav-number">1.1.</span> <span class="nav-text">MongoDB</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#MongoDBOplog"><span class="nav-number">1.2.</span> <span class="nav-text">MongoDBOplog</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#MongoDB连接"><span class="nav-number">1.2.1.</span> <span class="nav-text">MongoDB连接</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#二-数据转换"><span class="nav-number">2.</span> <span class="nav-text">二.数据转换</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Kafka"><span class="nav-number">2.1.</span> <span class="nav-text">Kafka</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#KafkaProducer"><span class="nav-number">2.1.1.</span> <span class="nav-text">KafkaProducer</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#KafkaConsumer"><span class="nav-number">2.1.2.</span> <span class="nav-text">KafkaConsumer</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#数据转换"><span class="nav-number">2.2.</span> <span class="nav-text">数据转换</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#三-数据落地"><span class="nav-number">3.</span> <span class="nav-text">三.数据落地</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#kudu"><span class="nav-number">3.1.</span> <span class="nav-text">kudu</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#kudu建表语句"><span class="nav-number">3.2.</span> <span class="nav-text">kudu建表语句</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="king"
+      src="/images/cat.png">
+  <p class="site-author-name" itemprop="name">king</p>
+  <div class="site-description" itemprop="description">诸天气荡荡,我道日兴隆</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives">
+          <span class="site-state-item-count">20</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">15</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/wangshubing1" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;wangshubing1" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:wang_shubing@126.com" title="E-Mail → mailto:wang_shubing@126.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/TXBSW" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;TXBSW" rel="noopener" target="_blank"><i class="copyright fa-fw"></i>CSDN</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.jianshu.com/u/98ab302c7f1a" title="简书 → https:&#x2F;&#x2F;www.jianshu.com&#x2F;u&#x2F;98ab302c7f1a" rel="noopener" target="_blank"><i class="heartbeat fa-fw"></i>简书</a>
+      </span>
+  </div>
+  <div class="cc-license motion-element" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" rel="noopener" target="_blank"><img src="/images/cc-by-nc-sa.svg" alt="Creative Commons"></a>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">king</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/lozad@1/dist/lozad.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
