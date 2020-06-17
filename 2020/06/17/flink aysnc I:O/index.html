@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Monda:300,300italic,400,400italic,700,700italic|Lobster Two:300,300italic,400,400italic,700,700italic|Amita:300,300italic,400,400italic,700,700italic|Roboto Slab:300,300italic,400,400italic,700,700italic|PT Mono:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  <link rel="stylesheet" href="/lib/pace/pace-theme-minimal.min.css">
+  <script src="/lib/pace/pace.min.js"></script>
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"yoursite.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":true},"copycode":{"enable":true,"show_result":true,"style":"mac"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":true,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="1、Aysnc I&#x2F;O1.1 概述流计算系统中经常需要与外部系统进行交互，我们通常的做法如向数据库发送用户a的查询请求，然后等待结果返回，在这之前，我们的程序无法发送用户b的查询请求。这是一种同步访问方式，如下图所示图中棕色的长条表示等待时间，可以发现网络等待时间极大地阻碍了吞吐和延迟。为了解决同步访问的问题，异步模式可以并发地处理多个请求和回复。也就是说，你可以连续地向数据库发送用户a、b、c等">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Flink Aysnc I&#x2F;O">
+<meta property="og:url" content="http://yoursite.com/2020/06/17/flink%20aysnc%20I:O/index.html">
+<meta property="og:site_name" content="诗与远方">
+<meta property="og:description" content="1、Aysnc I&#x2F;O1.1 概述流计算系统中经常需要与外部系统进行交互，我们通常的做法如向数据库发送用户a的查询请求，然后等待结果返回，在这之前，我们的程序无法发送用户b的查询请求。这是一种同步访问方式，如下图所示图中棕色的长条表示等待时间，可以发现网络等待时间极大地阻碍了吞吐和延迟。为了解决同步访问的问题，异步模式可以并发地处理多个请求和回复。也就是说，你可以连续地向数据库发送用户a、b、c等">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://ci.apache.org/projects/flink/flink-docs-release-1.10/fig/async_io.svg">
+<meta property="og:image" content="http://m.qpic.cn/psc?/V13VPBDG4Ve2nJ/OO0GOkEvd.dIewPrYqD0DgiTJiQWbovShY7ryWzG0iuMS1fI6KvZ*i2iqnDYwlImq1iSb*srY40fLCYFCDXkWw!!/b&bo=OQJaAQAAAAADB0I!&rf=viewer_4">
+<meta property="og:image" content="http://m.qpic.cn/psc?/V13VPBDG4Ve2nJ/OO0GOkEvd.dIewPrYqD0DstrxrdiNf4bfw32imM8IzjvKZ8mmjw*AgquMNJKaZx0RQiH9mjJX6XEjZRQDeYqsQ!!/b&bo=YgIAAQAAAAADB0M!&rf=viewer_4">
+<meta property="og:image" content="http://m.qpic.cn/psc?/V13VPBDG4Ve2nJ/gliYV*h0f2f2HjcOdYSYvYhG4JIAs4LH8sO8mbpeq.XpQzpJvdSJxOKWi8VAOiQuVWQ55jIAQ7OuAhNy4BD3XpLEOstXTrtZ9K8cg5qa.5Y!/b&bo=TQJmAQAAAAADFxo!&rf=viewer_4">
+<meta property="og:image" content="http://m.qpic.cn/psc?/V13VPBDG4Ve2nJ/gliYV*h0f2f2HjcOdYSYvfzRUoZTWdo*mv*M6Qp38djjh30BXw.MwnIxIkODa6eQUwD6PkEKirc7zlz.j2JZRqQ7ntWpMNDahvN8RQci3nk!/b&bo=VAKCAQAAAAADF.c!&rf=viewer_4">
+<meta property="article:published_time" content="2020-06-17T02:46:39.980Z">
+<meta property="article:modified_time" content="2020-06-17T02:48:38.562Z">
+<meta property="article:author" content="king">
+<meta property="article:tag" content="flink">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://ci.apache.org/projects/flink/flink-docs-release-1.10/fig/async_io.svg">
+
+<link rel="canonical" href="http://yoursite.com/2020/06/17/flink%20aysnc%20I:O/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>Flink Aysnc I/O | 诗与远方</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">诗与远方</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">人道渺渺,仙道莽莽</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/06/17/flink%20aysnc%20I:O/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/cat.png">
+      <meta itemprop="name" content="king">
+      <meta itemprop="description" content="诸天气荡荡,我道日兴隆">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="诗与远方">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Flink Aysnc I/O
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2020-06-17 10:46:39 / 修改时间：10:48:38" itemprop="dateCreated datePublished" datetime="2020-06-17T10:46:39+08:00">2020-06-17</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/bigdata/" itemprop="url" rel="index"><span itemprop="name">bigdata</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span><br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>3.9k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>4 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h3 id="1、Aysnc-I-O"><a href="#1、Aysnc-I-O" class="headerlink" title="1、Aysnc I/O"></a>1、Aysnc I/O</h3><h4 id="1-1-概述"><a href="#1-1-概述" class="headerlink" title="1.1 概述"></a>1.1 概述</h4><p>流计算系统中经常需要与外部系统进行交互，我们通常的做法如向数据库发送用户a的查询请求，然后等待结果返回，在这之前，我们的程序无法发送用户b的查询请求。这是一种同步访问方式，如下图所示<br><img data-src="https://ci.apache.org/projects/flink/flink-docs-release-1.10/fig/async_io.svg" alt="image"><br>图中棕色的长条表示等待时间，可以发现网络等待时间极大地阻碍了吞吐和延迟。为了解决同步访问的问题，异步模式可以并发地处理多个请求和回复。也就是说，你可以连续地向数据库发送用户a、b、c等的请求，与此同时，哪个请求的回复先返回了就处理哪个回复，从而连续的请求之间不需要阻塞等待，如上图右边所示。这也正是 Async I/O 的实现原理。</p>
+<h4 id="1-2使用Aysnc-I-O的前提条件"><a href="#1-2使用Aysnc-I-O的前提条件" class="headerlink" title="1.2使用Aysnc I/O的前提条件"></a>1.2使用Aysnc I/O的前提条件</h4><ul>
+<li><p>1.数据库(或key/value存储)提供支持异步请求的client。</p>
+</li>
+<li><p>2.没有异步请求客户端的话也可以将同步客户端丢到线程池中执行作为异步客户端。</p>
+</li>
+</ul>
+<blockquote>
+<p>注意：后者没有前者效果好。</p>
+</blockquote>
+<h4 id="1-3Async-I-O-API实现异步流式转换"><a href="#1-3Async-I-O-API实现异步流式转换" class="headerlink" title="1.3Async I/O API实现异步流式转换"></a>1.3Async I/O API实现异步流式转换</h4><p>Flink Async I/O API 允许用户在数据流中使用异步请求客户端访问外部存储。该API处理与数据流的集成，以及消息顺序性(Order)、事件时间(event time)、一致性(容错)等脏活累活。用户只需要专注于业务。</p>
+<p>如果目标数据库有异步客户端，则三步即可实现异步流式转换操作(针对该数据库异步)：</p>
+<p>1.实现用来分发请求的AsyncFunction ，用来向数据库发送异步请求并设置回调。</p>
+<p>2.获取操作结果的callback，并将它提交给ResultFuture。</p>
+<p>3.将异步I/O操作应用于DataStream。<br>AsyncFunction实现实例eg:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// This example implements the asynchronous request and callback with Futures that have the</span></span><br><span class="line"><span class="comment">// interface of Java 8's futures (which is the same one followed by Flink's Future)</span></span><br><span class="line"></span><br><span class="line"><span class="comment">/** 'AsyncFunction' 的一个实现，向数据库发送异步请求并设置回调 */</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">AsyncDatabaseRequest</span> <span class="keyword">extends</span> <span class="title">RichAsyncFunction</span>&lt;<span class="title">String</span>, <span class="title">Tuple2</span>&lt;<span class="title">String</span>, <span class="title">String</span>&gt;&gt; </span>&#123;</span><br><span class="line"></span><br><span class="line">   <span class="comment">/** 可以异步请求的特定数据库的客户端 */</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">transient</span> DatabaseClient client;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">open</span><span class="params">(Configuration parameters)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">    </span><br><span class="line">        client = <span class="keyword">new</span> DatabaseClient(host, post, credentials);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">close</span><span class="params">()</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">        client.close();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">asyncInvoke</span><span class="params">(String key, <span class="keyword">final</span> ResultFuture&lt;Tuple2&lt;String, String&gt;&gt; resultFuture)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line"></span><br><span class="line">       <span class="comment">//发出异步请求，返回结果的 future</span></span><br><span class="line">        <span class="keyword">final</span> Future&lt;String&gt; result = client.query(key);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// set the callback to be executed once the request by the client is complete</span></span><br><span class="line">        <span class="comment">// the callback simply forwards the result to the result future</span></span><br><span class="line">        CompletableFuture.supplyAsync(<span class="keyword">new</span> Supplier&lt;String&gt;() &#123;</span><br><span class="line"></span><br><span class="line">            <span class="meta">@Override</span></span><br><span class="line">            <span class="function"><span class="keyword">public</span> String <span class="title">get</span><span class="params">()</span> </span>&#123;</span><br><span class="line">                <span class="keyword">try</span> &#123;</span><br><span class="line">                    <span class="keyword">return</span> result.get();</span><br><span class="line">                &#125; <span class="keyword">catch</span> (InterruptedException | ExecutionException e) &#123;</span><br><span class="line">                    <span class="comment">// Normally handled explicitly.</span></span><br><span class="line">                    <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;).thenAccept( (String dbResult) -&gt; &#123;</span><br><span class="line">            resultFuture.complete(Collections.singleton(<span class="keyword">new</span> Tuple2&lt;&gt;(key, dbResult)));</span><br><span class="line">        &#125;);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// create the original stream</span></span><br><span class="line">DataStream&lt;String&gt; stream = ...;</span><br><span class="line"></span><br><span class="line"><span class="comment">// apply the async I/O transformation</span></span><br><span class="line">DataStream&lt;Tuple2&lt;String, String&gt;&gt; resultStream =</span><br><span class="line">    AsyncDataStream.unorderedWait(stream, <span class="keyword">new</span> AsyncDatabaseRequest(), <span class="number">1000</span>, TimeUnit.MILLISECONDS, <span class="number">100</span>);</span><br></pre></td></tr></table></figure>
+<h4 id="1-4AsyncFunction超时处理"><a href="#1-4AsyncFunction超时处理" class="headerlink" title="1.4AsyncFunction超时处理"></a>1.4AsyncFunction超时处理</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">AsyncFunction</span>&lt;<span class="title">IN</span>, <span class="title">OUT</span>&gt; <span class="keyword">extends</span> <span class="title">Function</span>, <span class="title">Serializable</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">asyncInvoke</span><span class="params">(IN var1, ResultFuture&lt;OUT&gt; var2)</span> <span class="keyword">throws</span> Exception</span>;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">default</span> <span class="keyword">void</span> <span class="title">timeout</span><span class="params">(IN input, ResultFuture&lt;OUT&gt; resultFuture)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">        resultFuture.completeExceptionally(<span class="keyword">new</span> TimeoutException(<span class="string">"Async function call has timed out."</span>));</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="1-5AsyncDataStream工具类"><a href="#1-5AsyncDataStream工具类" class="headerlink" title="1.5AsyncDataStream工具类"></a>1.5AsyncDataStream工具类</h4><p>一个工具类，用于将AsyncFunction应用于DataStream。</p>
+<p>AsyncFunction发出的并发请求通常是无序的，该顺序基于哪个请求先完成。为了控制结果记录的发出顺序，Flink提供了两种模式，分别对应AsyncDataStream 的两个静态方法，orderedWait 和 unorderedWait：</p>
+<p>1.orderedWait(有序)：消息的发送顺序与接收到的顺序相同（包括 watermark ），也就是先进先出。</p>
+<p>2.unorderedWait(无序) ：</p>
+<p>a）在 ProcessingTime 的情况下，完全无序，先返回的结果先发送(最低延迟和最低开销)。</p>
+<p>b）在 EventTime 的情况下，watermark 不能超越消息，消息也不能超越 watermark，也就是说 watermark 定义的顺序的边界。在两个 watermark 之间的消息的发送是无序的，但是在watermark之后的消息不能先于该watermark之前的消息发送。(这意味着，在存在watermark的情况下，无序模式引入了与有序模式相同的延迟和管理开销。这种开销的大小取决于watermark频率。)</p>
+<blockquote>
+<p>注意：Ingestion Time是一种特殊的Event Time ，它根据source的processing time自动生成watermark。</p>
+</blockquote>
+<h4 id="1-6容错与最佳实践"><a href="#1-6容错与最佳实践" class="headerlink" title="1.6容错与最佳实践"></a>1.6容错与最佳实践</h4><p>Async I/O operator提供完全exactly-once容错保证，它将运行中的异步请求记录存储在检查点中，并在从故障恢复时恢复/重新触发请求</p>
+<p>最佳实践</p>
+<p>1.使用Executor作为Future的回调时，推荐使用线程切换开销较小的DirectExecutor，可以选择下面任意方式或得：</p>
+<p>org.apache.flink.runtime.concurrent.Executors.directExecutor()</p>
+<p>com.google.common.util.concurrent.MoreExecutors.directExecutor()</p>
+<p>2.asyncInvoke#asyncInvoke不是被Flink多线程调用的，不要在里面直接使用阻塞操作。</p>
+<h3 id="2原理"><a href="#2原理" class="headerlink" title="2原理"></a>2原理</h3><h4 id="2-1原理实现"><a href="#2-1原理实现" class="headerlink" title="2.1原理实现"></a>2.1原理实现</h4><p>AsyncDataStream.unorderedWait 创建了一个AsyncWaitOperator，AsyncWaitOperator是支持异步IO访问的算子实现，该算子会运行AsyncFunction 并处理异步返回的结果，其内部原理如下图所示<br><img data-src="http://m.qpic.cn/psc?/V13VPBDG4Ve2nJ/OO0GOkEvd.dIewPrYqD0DgiTJiQWbovShY7ryWzG0iuMS1fI6KvZ*i2iqnDYwlImq1iSb*srY40fLCYFCDXkWw!!/b&bo=OQJaAQAAAAADB0I!&rf=viewer_4" alt="image"><br>如图所示，AsyncWaitOperator 主要由两部分组成：StreamElementQueue 和 Emitter。StreamElementQueue 是一个 Promise 队列，所谓 Promise 是一种异步抽象表示将来会有一个值（参考 <a href="https://docs.scala-lang.org/zh-cn/overviews/core/futures.html#promises" target="_blank" rel="noopener">Scala Promise</a>了解更多），这个队列是未完成的 Promise 队列，也就是进行中的请求队列。Emitter 是一个单独的线程，负责发送消息（收到的异步回复）给下游。</p>
+<p>图中<strong>E5</strong>表示进入该算子的第五个元素（”Element-5”），在执行过程中首先会将其包装成一个 “Promise” P5，然后将P5放入队列。最后调用 AsyncFunction 的 ayncInvoke 方法，该方法会向外部服务发起一个异步的请求，并注册回调。该回调会在异步请求成功返回时调用 AsyncCollector.collect 方法将返回的结果交给框架处理。实际上 AsyncCollector 是一个 Promise ，也就是 P5，在调用 collect 的时候会标记 Promise 为完成状态，并通知 Emitter 线程有完成的消息可以发送了。Emitter 就会从队列中拉取完成的 Promise ，并从 Promise 中取出消息发送给下游。</p>
+<h4 id="2-2消息的顺序性"><a href="#2-2消息的顺序性" class="headerlink" title="2.2消息的顺序性"></a>2.2消息的顺序性</h4><p>上文提到 Async I/O 提供了两种输出模式。其实细分有三种模式: 有序，ProcessingTime 无序，EventTime 无序。Flink 使用队列来实现不同的输出模式，并抽象出一个队列的接口（<u>StreamElementQueue</u>），这种分层设计使得<u>AsyncWaitOperator</u>和<u>Emitter</u>不用关心消息的顺序问题。<u>StreamElementQueue</u>有两种具体实现，分别是 <u>OrderedStreamElementQueue</u> 和 <u>UnorderedStreamElementQueue</u>。<u>UnorderedStreamElementQueue</u> 比较有意思，它使用了一套逻辑巧妙地实现完全无序和 EventTime 无序。</p>
+<h4 id="2-3有序"><a href="#2-3有序" class="headerlink" title="2.3有序"></a>2.3有序</h4><p>有序比较简单，使用一个队列就能实现。所有新进入该算子的元素（包括 watermark），都会包装成 Promise 并按到达顺序放入该队列。如下图所示，尽管P4的结果先返回，但并不会发送，只有 P1 （队首）的结果返回了才会触发 Emitter 拉取队首元素进行发送。<br><img data-src="http://m.qpic.cn/psc?/V13VPBDG4Ve2nJ/OO0GOkEvd.dIewPrYqD0DstrxrdiNf4bfw32imM8IzjvKZ8mmjw*AgquMNJKaZx0RQiH9mjJX6XEjZRQDeYqsQ!!/b&bo=YgIAAQAAAAADB0M!&rf=viewer_4" alt="image"></p>
+<h4 id="2-4ProcessingTime-无序"><a href="#2-4ProcessingTime-无序" class="headerlink" title="2.4ProcessingTime 无序"></a>2.4ProcessingTime 无序</h4><p>ProcessingTime 无序也比较简单，因为没有 watermark，不需要协调 watermark 与消息的顺序性，所以使用两个队列就能实现，一个 uncompletedQueue 一个 completedQueue。所有新进入该算子的元素，同样的包装成 Promise 并放入 uncompletedQueue 队列，当uncompletedQueue队列中任意的Promise返回了数据，则将该 Promise 移到 completedQueue 队列中，并通知 Emitter 消费。如下图所示：<br><img data-src="http://m.qpic.cn/psc?/V13VPBDG4Ve2nJ/gliYV*h0f2f2HjcOdYSYvYhG4JIAs4LH8sO8mbpeq.XpQzpJvdSJxOKWi8VAOiQuVWQ55jIAQ7OuAhNy4BD3XpLEOstXTrtZ9K8cg5qa.5Y!/b&bo=TQJmAQAAAAADFxo!&rf=viewer_4" alt="image"></p>
+<h4 id="2-5EventTime-无序"><a href="#2-5EventTime-无序" class="headerlink" title="2.5EventTime 无序"></a>2.5EventTime 无序</h4><p>EventTime 无序类似于有序与 ProcessingTime 无序的结合体。因为有 watermark，需要协调 watermark 与消息之间的顺序性，所以uncompletedQueue中存放的元素从原先的 Promise 变成了 Promise 集合。如果进入算子的是消息元素，则会包装成 Promise 放入队尾的集合中。如果进入算子的是 watermark，也会包装成 Promise 并放到一个独立的集合中，再将该集合加入到 uncompletedQueue 队尾，最后再创建一个空集合加到 uncompletedQueue 队尾。这样，watermark 就成了消息顺序的边界。只有处在队首的集合中的 Promise 返回了数据，才能将该 Promise 移到 completedQueue 队列中，由 Emitter 消费发往下游。只有队首集合空了，才能处理第二个集合。这样就保证了当且仅当某个 watermark 之前所有的消息都已经被发送了，该 watermark 才能被发送。过程如下图所示：<br><img data-src="http://m.qpic.cn/psc?/V13VPBDG4Ve2nJ/gliYV*h0f2f2HjcOdYSYvfzRUoZTWdo*mv*M6Qp38djjh30BXw.MwnIxIkODa6eQUwD6PkEKirc7zlz.j2JZRqQ7ntWpMNDahvN8RQci3nk!/b&bo=VAKCAQAAAAADF.c!&rf=viewer_4" alt="image"></p>
+<h4 id="2-6快照与恢复"><a href="#2-6快照与恢复" class="headerlink" title="2.6快照与恢复"></a>2.6快照与恢复</h4><p>分布式快照机制是为了保证状态的一致性。我们需要分析哪些状态是需要快照的，哪些是不需要的。首先，已经完成回调并且已经发往下游的元素是不需要快照的。否则，会导致重发，那就不是 exactly-once 了。而已经完成回调且未发往下游的元素，加上未完成回调的元素，就是上述队列中的所有元素。</p>
+<p>所以快照的逻辑也非常简单，(1)清空原有的状态存储，(2)遍历队列中的所有 Promise，从中取出 StreamElement（消息或 watermark）并放入状态存储中，(3)执行快照操作。</p>
+<p>恢复的时候，从快照中读取所有的元素全部再处理一次，当然包括之前已完成回调的元素。所以在失败恢复后，会有元素重复请求外部服务，但是每个回调的结果只会被发往下游一次。</p>
+<h3 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h3><p><a href="https://ci.apache.org/projects/flink/flink-docs-release-1.10/dev/stream/operators/asyncio.html" target="_blank" rel="noopener">https://ci.apache.org/projects/flink/flink-docs-release-1.10/dev/stream/operators/asyncio.html</a><br><a href="https://cwiki.apache.org/confluence/pages/viewpage.action?pageId=65870673" target="_blank" rel="noopener">https://cwiki.apache.org/confluence/pages/viewpage.action?pageId=65870673</a></p>
+
+    </div>
+
+    
+    
+    
+        
+
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>本文作者： </strong>king
+  </li>
+  <li class="post-copyright-link">
+    <strong>本文链接：</strong>
+    <a href="http://yoursite.com/2020/06/17/flink%20aysnc%20I:O/" title="Flink Aysnc I&#x2F;O">http://yoursite.com/2020/06/17/flink aysnc I:O/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/flink/" rel="tag"># flink</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2020/06/16/hello-world/" rel="prev" title="Hello World">
+      <i class="fa fa-chevron-left"></i> Hello World
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#1、Aysnc-I-O"><span class="nav-number">1.</span> <span class="nav-text">1、Aysnc I&#x2F;O</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-1-概述"><span class="nav-number">1.1.</span> <span class="nav-text">1.1 概述</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-2使用Aysnc-I-O的前提条件"><span class="nav-number">1.2.</span> <span class="nav-text">1.2使用Aysnc I&#x2F;O的前提条件</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-3Async-I-O-API实现异步流式转换"><span class="nav-number">1.3.</span> <span class="nav-text">1.3Async I&#x2F;O API实现异步流式转换</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-4AsyncFunction超时处理"><span class="nav-number">1.4.</span> <span class="nav-text">1.4AsyncFunction超时处理</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-5AsyncDataStream工具类"><span class="nav-number">1.5.</span> <span class="nav-text">1.5AsyncDataStream工具类</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-6容错与最佳实践"><span class="nav-number">1.6.</span> <span class="nav-text">1.6容错与最佳实践</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2原理"><span class="nav-number">2.</span> <span class="nav-text">2原理</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1原理实现"><span class="nav-number">2.1.</span> <span class="nav-text">2.1原理实现</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2消息的顺序性"><span class="nav-number">2.2.</span> <span class="nav-text">2.2消息的顺序性</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-3有序"><span class="nav-number">2.3.</span> <span class="nav-text">2.3有序</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-4ProcessingTime-无序"><span class="nav-number">2.4.</span> <span class="nav-text">2.4ProcessingTime 无序</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-5EventTime-无序"><span class="nav-number">2.5.</span> <span class="nav-text">2.5EventTime 无序</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-6快照与恢复"><span class="nav-number">2.6.</span> <span class="nav-text">2.6快照与恢复</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#参考资料"><span class="nav-number">3.</span> <span class="nav-text">参考资料</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="king"
+      src="/images/cat.png">
+  <p class="site-author-name" itemprop="name">king</p>
+  <div class="site-description" itemprop="description">诸天气荡荡,我道日兴隆</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives">
+          <span class="site-state-item-count">21</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">15</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/wangshubing1" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;wangshubing1" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:wang_shubing@126.com" title="E-Mail → mailto:wang_shubing@126.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://blog.csdn.net/TXBSW" title="CSDN → https:&#x2F;&#x2F;blog.csdn.net&#x2F;TXBSW" rel="noopener" target="_blank"><i class="copyright fa-fw"></i>CSDN</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.jianshu.com/u/98ab302c7f1a" title="简书 → https:&#x2F;&#x2F;www.jianshu.com&#x2F;u&#x2F;98ab302c7f1a" rel="noopener" target="_blank"><i class="heartbeat fa-fw"></i>简书</a>
+      </span>
+  </div>
+  <div class="cc-license motion-element" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" rel="noopener" target="_blank"><img src="/images/cc-by-nc-sa.svg" alt="Creative Commons"></a>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">king</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">33k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">30 分钟</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> 强力驱动
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/lozad@1/dist/lozad.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
