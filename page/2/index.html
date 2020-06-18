@@ -212,10 +212,16 @@
                 <i class="far fa-calendar"></i>
               </span>
               <span class="post-meta-item-text">发表于</span>
-              
 
-              <time title="创建时间：2019-02-25 13:55:39 / 修改时间：14:01:35" itemprop="dateCreated datePublished" datetime="2019-02-25T13:55:39+08:00">2019-02-25</time>
+              <time title="创建时间：2019-02-25 13:55:39" itemprop="dateCreated datePublished" datetime="2019-02-25T13:55:39+08:00">2019-02-25</time>
             </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-06-18 16:51:50" itemprop="dateModified" datetime="2020-06-18T16:51:50+08:00">2020-06-18</time>
+              </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
                 <i class="far fa-folder"></i>
@@ -252,19 +258,6 @@
 
       
           <h2 id="GoldenGate介绍"><a href="#GoldenGate介绍" class="headerlink" title="GoldenGate介绍"></a>GoldenGate介绍</h2><p>GoldenGate软件是一种基于日志的结构化数据复制软件。GoldenGate 能够实现大量交易数据的实时捕捉、变换和投递，实现源数据库与目标数据库的数据同步，保持亚秒级的数据延迟。</p>
-<p>GoldenGate能够支持多种拓扑结构，包括一对一，一对多，多对一，层叠和双向复制等等。</p>
-<h3 id="GoldenGate基本架构"><a href="#GoldenGate基本架构" class="headerlink" title="GoldenGate基本架构"></a>GoldenGate基本架构</h3><h4 id="Oracle-GoldenGate主要由如下组件组成"><a href="#Oracle-GoldenGate主要由如下组件组成" class="headerlink" title="Oracle GoldenGate主要由如下组件组成"></a>Oracle GoldenGate主要由如下组件组成</h4><ul>
-<li>Extract</li>
-<li>Data pump</li>
-<li>Trails</li>
-<li>Collector</li>
-<li>Replicat</li>
-<li>Manager<h4 id="Oracle-GoldenGate-数据复制过程如下："><a href="#Oracle-GoldenGate-数据复制过程如下：" class="headerlink" title="Oracle GoldenGate 数据复制过程如下："></a>Oracle GoldenGate 数据复制过程如下：</h4></li>
-</ul>
-<p>利用抽取进程(Extract Process)在源端数据库中读取Online Redo Log或者Archive Log，然后进行解析，只提取其中数据的变化信息，比如DML操作——增、删、改操作，将抽取的信息转换为GoldenGate自定义的中间格式存放在队列文件(trail file)中。再利用传输进程将队列文件(trail file)通过TCP/IP传送到目标系统。</p>
-<p>目标端有一个进程叫Server Collector，这个进程接受了从源端传输过来的数据变化信息，把信息缓存到GoldenGate 队列文件(trail file)当中，等待目标端的复制进程读取数据。</p>
-<p>GoldenGate 复制进程(replicat process)从队列文件(trail file)中读取数据变化信息，并创建对应的SQL语句，通过数据库的本地接口执行，提交到目标端数据库，提交成功后更新自己的检查点，记录已经完成复制的位置，数据的复制过程最终完成。</p>
-<h4 id="①-Manager"><a href="#①-Manager" class="headerlink" title="① Manager"></a>① Manager</h4>
           <!--noindex-->
             <div class="post-button">
               <a class="btn" href="/2019/02/25/oracle%E9%80%9A%E8%BF%87ogg%E4%BC%A0%E9%80%92%E6%95%B0%E6%8D%AE%E5%88%B0kafka/#more" rel="contents">
@@ -317,6 +310,13 @@
 
               <time title="创建时间：2019-02-02 14:22:24" itemprop="dateCreated datePublished" datetime="2019-02-02T14:22:24+08:00">2019-02-02</time>
             </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-06-18 16:51:17" itemprop="dateModified" datetime="2020-06-18T16:51:17+08:00">2020-06-18</time>
+              </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
                 <i class="far fa-folder"></i>
@@ -353,11 +353,6 @@
 
       
           <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>总结一下Hive的内部表和外部表以及两者的区别。</p>
-<h2 id="1、建表语句"><a href="#1、建表语句" class="headerlink" title="1、建表语句"></a>1、建表语句</h2><h3 id="1-1-内部表"><a href="#1-1-内部表" class="headerlink" title="1.1 内部表"></a>1.1 内部表</h3><p>平时创建的普通表为内部表(默认创建的就是内部表)</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">create</span> <span class="keyword">table</span> test_internal (</span><br><span class="line"><span class="keyword">id</span> <span class="keyword">string</span> <span class="keyword">comment</span> <span class="string">'ID'</span>, </span><br><span class="line"><span class="keyword">name</span> <span class="keyword">string</span> <span class="keyword">comment</span> <span class="string">'名字'</span></span><br><span class="line">)</span><br><span class="line"><span class="keyword">comment</span> <span class="string">'测试内部表'</span></span><br><span class="line"><span class="keyword">ROW</span> <span class="keyword">FORMAT</span> <span class="keyword">DELIMITED</span> <span class="keyword">FIELDS</span> <span class="keyword">TERMINATED</span> <span class="keyword">BY</span> <span class="string">','</span> ;</span><br></pre></td></tr></table></figure>
-<h3 id="1-2-外部表"><a href="#1-2-外部表" class="headerlink" title="1.2 外部表"></a>1.2 外部表</h3><p>带external关键字的为外部表</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">create</span> <span class="keyword">external</span> <span class="keyword">table</span> <span class="string">`test_external`</span> (</span><br><span class="line"><span class="keyword">id</span> <span class="keyword">string</span> <span class="keyword">comment</span> <span class="string">'ID'</span>, </span><br><span class="line"><span class="keyword">name</span> <span class="keyword">string</span> <span class="keyword">comment</span> <span class="string">'名字'</span></span><br><span class="line">)</span><br><span class="line"><span class="keyword">comment</span> <span class="string">'测试外部表'</span></span><br><span class="line"><span class="keyword">ROW</span> <span class="keyword">FORMAT</span> <span class="keyword">DELIMITED</span> <span class="keyword">FIELDS</span> <span class="keyword">TERMINATED</span> <span class="keyword">BY</span> <span class="string">','</span> ;</span><br></pre></td></tr></table></figure>
-<p>仅从建表语句上看，内部表和外部表的区别为是否带有external关键字。</p>
           <!--noindex-->
             <div class="post-button">
               <a class="btn" href="/2019/02/02/hive%E5%86%85%E9%83%A8%E8%A1%A8%E4%B8%8E%E5%A4%96%E9%83%A8%E8%A1%A8%E5%8C%BA%E5%88%AB/#more" rel="contents">
@@ -410,6 +405,13 @@
 
               <time title="创建时间：2019-01-31 14:23:15" itemprop="dateCreated datePublished" datetime="2019-01-31T14:23:15+08:00">2019-01-31</time>
             </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-06-18 16:51:42" itemprop="dateModified" datetime="2020-06-18T16:51:42+08:00">2020-06-18</time>
+              </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
                 <i class="far fa-folder"></i>
@@ -445,26 +447,7 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <h4 id="建表语句"><a href="#建表语句" class="headerlink" title="建表语句"></a>建表语句</h4><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">create</span> <span class="keyword">external</span> <span class="keyword">table</span> movie(</span><br><span class="line">userID <span class="built_in">int</span> <span class="keyword">comment</span> <span class="string">'用户ID'</span>,</span><br><span class="line">movieID <span class="built_in">int</span> <span class="keyword">comment</span> <span class="string">'电影ID'</span>,</span><br><span class="line">rating <span class="built_in">int</span> <span class="keyword">comment</span> <span class="string">'电影评分'</span>,</span><br><span class="line">timestamped <span class="built_in">bigint</span> <span class="keyword">comment</span> <span class="string">'评分时间戳'</span>,</span><br><span class="line">movieName <span class="keyword">string</span> <span class="keyword">comment</span> <span class="string">'电影名字'</span>, </span><br><span class="line">movieType <span class="keyword">string</span> <span class="keyword">comment</span> <span class="string">'电影类型'</span>, </span><br><span class="line">sex <span class="keyword">string</span> <span class="keyword">comment</span> <span class="string">'性别'</span>, </span><br><span class="line">age <span class="built_in">int</span> <span class="keyword">comment</span> <span class="string">'年龄'</span>, </span><br><span class="line">occupation <span class="keyword">string</span> <span class="keyword">comment</span> <span class="string">'职业'</span>, </span><br><span class="line">zipcode <span class="keyword">string</span> <span class="keyword">comment</span> <span class="string">'邮政编码'</span></span><br><span class="line">) <span class="keyword">comment</span> <span class="string">'影评三表合一'</span> </span><br><span class="line"><span class="keyword">row</span> <span class="keyword">format</span> <span class="keyword">delimited</span> <span class="keyword">fields</span> <span class="keyword">terminated</span> <span class="keyword">by</span> <span class="string">","</span></span><br><span class="line">location <span class="string">'/hive/movie'</span>;</span><br></pre></td></tr></table></figure>
-<p>这是因为在hive的元数据库中MySQL中的元数据出现乱码</p>
-<ul>
-<li><p>那么我们只需要把相应注释的地方的字符集由 latin1 改成 utf-8，就可以了。用到注释的就三个地方，表、分区、视图。如下修改分为两个步骤：</p>
-<h5 id="1、进入数据库-Metastore-中执行以下-5-条-SQL-语句"><a href="#1、进入数据库-Metastore-中执行以下-5-条-SQL-语句" class="headerlink" title="1、进入数据库 Metastore 中执行以下 5 条 SQL 语句"></a>1、进入数据库 Metastore 中执行以下 5 条 SQL 语句</h5></li>
-<li><p>（1）修改表字段注解和表注解</p>
-</li>
-</ul>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">alter</span> <span class="keyword">table</span> COLUMNS_V2 <span class="keyword">modify</span> <span class="keyword">column</span> <span class="keyword">COMMENT</span> <span class="built_in">varchar</span>(<span class="number">256</span>) <span class="built_in">character</span> <span class="keyword">set</span> utf8;</span><br><span class="line"><span class="keyword">alter</span> <span class="keyword">table</span> TABLE_PARAMS <span class="keyword">modify</span> <span class="keyword">column</span> PARAM_VALUE <span class="built_in">varchar</span>(<span class="number">4000</span>) <span class="built_in">character</span> <span class="keyword">set</span> utf8;</span><br></pre></td></tr></table></figure>
-
-<ul>
-<li>（2）修改分区字段注解</li>
-</ul>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">alter</span> <span class="keyword">table</span> PARTITION_PARAMS <span class="keyword">modify</span> <span class="keyword">column</span> PARAM_VALUE <span class="built_in">varchar</span>(<span class="number">4000</span>) <span class="built_in">character</span> <span class="keyword">set</span> utf8 ;</span><br><span class="line"><span class="keyword">alter</span> <span class="keyword">table</span> PARTITION_KEYS <span class="keyword">modify</span> <span class="keyword">column</span> PKEY_COMMENT <span class="built_in">varchar</span>(<span class="number">4000</span>) <span class="built_in">character</span> <span class="keyword">set</span> utf8;</span><br></pre></td></tr></table></figure>
-
-<ul>
-<li>（3）修改索引注解</li>
-</ul>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">alter</span> <span class="keyword">table</span> INDEX_PARAMS <span class="keyword">modify</span> <span class="keyword">column</span> PARAM_VALUE <span class="built_in">varchar</span>(<span class="number">4000</span>) <span class="built_in">character</span> <span class="keyword">set</span> utf8;</span><br></pre></td></tr></table></figure>
-<h4 id="2、修改-metastore-的连接-URL"><a href="#2、修改-metastore-的连接-URL" class="headerlink" title="2、修改 metastore 的连接 URL"></a>2、修改 metastore 的连接 URL</h4>
+          <h4 id="建表语句"><a href="#建表语句" class="headerlink" title="建表语句"></a>建表语句</h4>
           <!--noindex-->
             <div class="post-button">
               <a class="btn" href="/2019/01/31/Hive%E6%B3%A8%E9%87%8A%E4%B8%AD%E6%96%87%E4%B9%B1%E7%A0%81/#more" rel="contents">
@@ -517,6 +500,13 @@
 
               <time title="创建时间：2019-01-30 14:01:17" itemprop="dateCreated datePublished" datetime="2019-01-30T14:01:17+08:00">2019-01-30</time>
             </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-06-18 16:50:50" itemprop="dateModified" datetime="2020-06-18T16:50:50+08:00">2020-06-18</time>
+              </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
                 <i class="far fa-folder"></i>
@@ -553,24 +543,8 @@
 
       
           <h5 id="编写Apache-Hive用户自定义函数（UDF）有两个不同的接口"><a href="#编写Apache-Hive用户自定义函数（UDF）有两个不同的接口" class="headerlink" title="编写Apache Hive用户自定义函数（UDF）有两个不同的接口"></a>编写Apache Hive用户自定义函数（UDF）有两个不同的接口</h5><ul>
-<li><p>简单API：org.apache.hadoop.hive.ql.exec.UDF</p>
-</li>
-<li><p>复杂API：  org.apache.hadoop.hive.ql.udf.generic.GenericUDF</p>
-</li>
-<li><p>如果你的函数读和返回都是基础数据类型（Hadoop&amp;Hive 基本writable类型，如Text,IntWritable,LongWriable,DoubleWritable等等），那么简单的API（org.apache.hadoop.hive.ql.exec.UDF）可以胜任</p>
-</li>
-<li><p>但是，如果你想写一个UDF用来操作内嵌数据结构，如Map，List和Set，那么你要去熟悉org.apache.hadoop.hive.ql.udf.generic.GenericUDF这个API</p>
-<h2 id="简单API"><a href="#简单API" class="headerlink" title="简单API"></a>简单API</h2><p>用简单UDF API来构建一个UDF只涉及到编写一个类继承实现一个方法（evaluate），以下是示例：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">SimpleUDFExample</span> <span class="keyword">extends</span> <span class="title">UDF</span> </span>&#123;  </span><br><span class="line">    </span><br><span class="line">  <span class="function"><span class="keyword">public</span> Text <span class="title">evaluate</span><span class="params">(Text input)</span> </span>&#123;  </span><br><span class="line">    <span class="keyword">if</span>(input == <span class="keyword">null</span>) <span class="keyword">return</span> <span class="keyword">null</span>;  </span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">new</span> Text(<span class="string">"Hello "</span> + input.toString());  </span><br><span class="line">  &#125;  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>然后加了一个测试去验证它</p>
-</li>
-</ul>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Test</span>  </span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">testUDFNullCheck</span><span class="params">()</span> </span>&#123;  </span><br><span class="line">  SimpleUDFExample example = <span class="keyword">new</span> SimpleUDFExample();  </span><br><span class="line">  Assert.assertNull(example.evaluate(<span class="keyword">null</span>));  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h2 id="复杂的API"><a href="#复杂的API" class="headerlink" title="复杂的API"></a>复杂的API</h2><p>org.apache.hadoop.hive.ql.udf.generic.GenericUDF API提供了一种方法去处理那些不是可写类型的对象，例如：struct，map和array类型。</p>
-<p>这个API需要你亲自去为函数的参数去管理对象存储格式（object inspectors），验证接收的参数的数量与类型。一个object inspector为内在的数据类型提供一个一致性接口，以至不同实现的对象可以在hive中以一致的方式去访问（例如，只要你能提供一个对应的object inspector，你可以实现一个如Map的复合对象）。</p>
-<p>这个API要求你去实现以下方法：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 这个类似于简单API的evaluat方法，它可以读取输入数据和返回结果  </span></span><br><span class="line"><span class="function"><span class="keyword">abstract</span> Object <span class="title">evaluate</span><span class="params">(GenericUDF.DeferredObject[] arguments)</span></span>;  </span><br><span class="line">  </span><br><span class="line"><span class="comment">// 该方法无关紧要，我们可以返回任何东西，但应当是描述该方法的字符串  </span></span><br><span class="line"><span class="function"><span class="keyword">abstract</span> String <span class="title">getDisplayString</span><span class="params">(String[] children)</span></span>;  </span><br><span class="line">  </span><br><span class="line"><span class="comment">// 只调用一次，在任何evaluate()调用之前，你可以接收到一个可以表示函数输入参数类型的object inspectors数组  </span></span><br><span class="line"><span class="comment">// 这是你用来验证该函数是否接收正确的参数类型和参数个数的地方  </span></span><br><span class="line"><span class="function"><span class="keyword">abstract</span> ObjectInspector <span class="title">initialize</span><span class="params">(ObjectInspector[] arguments)</span></span>;</span><br></pre></td></tr></table></figure>
-<h3 id="示例"><a href="#示例" class="headerlink" title="示例"></a>示例</h3><p>我将通过建立一个UDF函数：containsString，来加深对该API了解，该函数接收两个参数：</p>
+<li>简单API：org.apache.hadoop.hive.ql.exec.UDF</li>
+<li>复杂API：  org.apache.hadoop.hive.ql.udf.generic.GenericUDF
           <!--noindex-->
             <div class="post-button">
               <a class="btn" href="/2019/01/30/Hive%20UDF%20%E4%B8%A4%E7%A7%8DAPI/#more" rel="contents">
@@ -620,10 +594,16 @@
                 <i class="far fa-calendar"></i>
               </span>
               <span class="post-meta-item-text">发表于</span>
-              
 
-              <time title="创建时间：2019-01-30 13:37:03 / 修改时间：13:42:48" itemprop="dateCreated datePublished" datetime="2019-01-30T13:37:03+08:00">2019-01-30</time>
+              <time title="创建时间：2019-01-30 13:37:03" itemprop="dateCreated datePublished" datetime="2019-01-30T13:37:03+08:00">2019-01-30</time>
             </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-06-18 16:51:00" itemprop="dateModified" datetime="2020-06-18T16:51:00+08:00">2020-06-18</time>
+              </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
                 <i class="far fa-folder"></i>
@@ -660,20 +640,12 @@
 
       
           <h2 id="UDF函数开发"><a href="#UDF函数开发" class="headerlink" title="UDF函数开发"></a>UDF函数开发</h2><ul>
-<li>标准函数（UDF）：以一行数据中的一列或者多列数据作为参数然后返回解雇欧式一个值的函数，同样也可以返回一个复杂的对象，例如array，map，struct。</li>
-<li>聚合函数(UDAF)：接受从零行到多行的零个到多个列，然后返回单一值。例如sum函数。</li>
-<li>生成函数（UDTF）:接受零个或者多个输入，然后产生多列或者多行输出。<h3 id="udf函数开发"><a href="#udf函数开发" class="headerlink" title="udf函数开发"></a>udf函数开发</h3></li>
-</ul>
-<p>当Hive提供的内置函数无法满足你的业务处理需要时，此时就可以考虑使用用户自定义函数，用户自定义函数（user defined function)，针对单条记录。编写一个UDF，需要继承UDF类，并实现evaluate()函数。在查询执行过程中，查询中对应的每个应用到这个函数的地方都会对这个类进行实例化。对于每行输入都会调用到evaluate()函数。而evaluate()函数处理的值会返回给Hive。同时用户是可以重载evaluate方法的。Hive会像Java的方法重载一样，自动选择匹配的方法。</p>
-<h3 id="准备数据："><a href="#准备数据：" class="headerlink" title="准备数据："></a>准备数据：</h3><ul>
-<li>littlebigdata.txt</li>
-</ul>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">edward capriolo,edward@media6degrees.com,2-12-1981,209.191.139.200,M,10</span><br><span class="line">bob,bob@test.net,10-10-2004,10.10.10.1,M,50</span><br><span class="line">sara connor,sara@sky.net,4-5-1974,64.64.5.1,F,2</span><br></pre></td></tr></table></figure>
-
-<h3 id="创建表："><a href="#创建表：" class="headerlink" title="创建表："></a>创建表：</h3><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">create</span> <span class="keyword">table</span> <span class="keyword">if</span> <span class="keyword">not</span> <span class="keyword">exists</span> littlebigdata(</span><br><span class="line"><span class="keyword">name</span> <span class="keyword">string</span>,</span><br><span class="line">email <span class="keyword">string</span>,</span><br><span class="line">bday <span class="keyword">string</span>,</span><br><span class="line">ip <span class="keyword">string</span>,</span><br><span class="line">gender <span class="keyword">string</span>,</span><br><span class="line">anum <span class="built_in">int</span></span><br><span class="line">)</span><br><span class="line"><span class="keyword">row</span> <span class="keyword">format</span> <span class="keyword">delimited</span> <span class="keyword">fields</span> <span class="keyword">terminated</span> <span class="keyword">by</span> <span class="string">','</span>;</span><br></pre></td></tr></table></figure>
-
-
-<h3 id="加载数据："><a href="#加载数据：" class="headerlink" title="加载数据："></a>加载数据：</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">hive&gt;</span><span class="bash">load data inpath <span class="string">'hdfs://nameservice1/user/hive/udfdata/littlebigdata.txt'</span> into table littlebigdata;</span></span><br></pre></td></tr></table></figure>
+<li><p>标准函数（UDF）：以一行数据中的一列或者多列数据作为参数然后返回解雇欧式一个值的函数，同样也可以返回一个复杂的对象，例如array，map，struct。</p>
+</li>
+<li><p>聚合函数(UDAF)：接受从零行到多行的零个到多个列，然后返回单一值。例如sum函数。</p>
+</li>
+<li><p>生成函数（UDTF）:接受零个或者多个输入，然后产生多列或者多行输出。</p>
+<h3 id="udf函数开发"><a href="#udf函数开发" class="headerlink" title="udf函数开发"></a>udf函数开发</h3>
           <!--noindex-->
             <div class="post-button">
               <a class="btn" href="/2019/01/30/hive-udf%E5%87%BD%E6%95%B0/#more" rel="contents">
@@ -726,6 +698,13 @@
 
               <time title="创建时间：2019-01-29 16:46:08" itemprop="dateCreated datePublished" datetime="2019-01-29T16:46:08+08:00">2019-01-29</time>
             </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-06-18 16:50:00" itemprop="dateModified" datetime="2020-06-18T16:50:00+08:00">2020-06-18</time>
+              </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
                 <i class="far fa-folder"></i>
@@ -762,34 +741,7 @@
 
       
           <ul>
-<li><p>对于流处理（DataStream），Flink相同提供了对迭代的支持。这一节我们主要来分析流处理中的迭代，我们将会看到流处理中的迭代相较于批处理有类似之处。但差异也是十分之明显。</p>
-</li>
-<li><p>可迭代的流处理程序同意定义“步函数”（step function）并将其内嵌到一个可迭代的流（IterativeStream）中。由于一个流处理程序可能永不终止，因此不同于批处理中的迭代机制，流处理中无法设置迭代的最大次数。取而代之的是，你能够指定等待反馈输入的最大时间间隔（假设超过该时间间隔没有反馈元素到来。那么该迭代将会终止）。通过应用split或filter转换，你能够指定流的哪一部分用于反馈给迭代头，哪一部分分发给下游。这里我们以filter作为演示样例来展示可迭代的流处理程序的API使用模式。</p>
-</li>
-</ul>
-<ol>
-<li>首先。基于输入流构建IterativeStream。这是一个迭代的起始。通常称之为迭代头：</li>
-</ol>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">IterativeStream&lt;Integer&gt; iteration = inputStream.iterate();</span><br></pre></td></tr></table></figure>
-
-<ol start="2">
-<li>接着。我们指定一系列的转换操作用于表述在迭代过程中运行的逻辑（这里简单以map转换作为演示样例）。map API所接受的UDF就是我们上文所说的步函数：</li>
-</ol>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">DataStream&lt;Integer&gt; iteratedStream = iteration.map(<span class="comment">/* this is executed many times */</span>);</span><br></pre></td></tr></table></figure>
-
-<ol start="3">
-<li>然后。作为迭代我们肯定须要有数据反馈给迭代头进行反复计算，所以我们从迭代过的流中过滤出符合条件的元素组成的部分流，我们称之为反馈流：</li>
-</ol>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">DataStream&lt;Integer&gt; feedbackStream = iteratedStream.filter(<span class="comment">/* one part of the stream */</span>);</span><br></pre></td></tr></table></figure>
-
-<ol start="4">
-<li>将反馈流反馈给迭代头就意味着一个迭代的完整逻辑的完毕，那么它就能够“关闭”这个闭合的“环”了。通过调用IterativeStream的closeWith这一实例方法能够关闭一个迭代（也可表述为定义了迭代尾）。传递给closeWith的数据流将会反馈给迭代头：</li>
-</ol>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">iteration.closeWith(feedbackStream);</span><br></pre></td></tr></table></figure>
-
-<ol start="5">
-<li>另外，一个惯用的模式是过滤出须要继续向前分发的部分流，这个过滤转换事实上定义的是“终止迭代”的逻辑条件，符合条件的元素将被分发给下游而不用于进行下一次迭代：</li>
-</ol>
+<li>对于流处理（DataStream），Flink相同提供了对迭代的支持。这一节我们主要来分析流处理中的迭代，我们将会看到流处理中的迭代相较于批处理有类似之处。但差异也是十分之明显。
           <!--noindex-->
             <div class="post-button">
               <a class="btn" href="/2019/01/29/Flink%E6%B5%81%E5%A4%84%E7%90%86%E4%B9%8B%E8%BF%AD%E4%BB%A3%E6%A1%88%E4%BE%8B/#more" rel="contents">
@@ -839,10 +791,16 @@
                 <i class="far fa-calendar"></i>
               </span>
               <span class="post-meta-item-text">发表于</span>
-              
 
-              <time title="创建时间：2019-01-28 18:34:55 / 修改时间：18:50:33" itemprop="dateCreated datePublished" datetime="2019-01-28T18:34:55+08:00">2019-01-28</time>
+              <time title="创建时间：2019-01-28 18:34:55" itemprop="dateCreated datePublished" datetime="2019-01-28T18:34:55+08:00">2019-01-28</time>
             </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-06-18 16:49:54" itemprop="dateModified" datetime="2020-06-18T16:49:54+08:00">2020-06-18</time>
+              </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
                 <i class="far fa-folder"></i>
@@ -879,18 +837,6 @@
 
       
           <h2 id="Windows-Join"><a href="#Windows-Join" class="headerlink" title="Windows Join"></a>Windows Join</h2><p>窗口连接连接两个共享公共密钥并位于同一窗口中的流的元素。可以使用窗口分配器定义这些窗口，并对来自两个流的元素进行评估。</p>
-<p>然后将来自双方的元素传递给用户定义的，JoinFunction或者FlatJoinFunction用户可以发出满足连接条件的结果。</p>
-<p>一般用法可概括如下：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">stream.join(otherStream)</span><br><span class="line">    .where(&lt;KeySelector&gt;)</span><br><span class="line">    .equalTo(&lt;KeySelector&gt;)</span><br><span class="line">    .window(&lt;WindowAssigner&gt;)</span><br><span class="line">    .apply(&lt;JoinFunction&gt;)</span><br></pre></td></tr></table></figure>
-<p>关于语义的一些注释：</p>
-<ul>
-<li>两个流的元素的成对组合的创建表现得像内部连接，意味着如果它们没有来自要连接的另一个流的对应元素，则不会发出来自一个流的元素。</li>
-<li>那些加入的元素将在其时间戳中包含仍位于相应窗口中的最大时间戳。例如，[5, 10)具有其边界的窗口将导致连接的元素具有9作为其时间戳。<h3 id="Tumbling-Window-Join"><a href="#Tumbling-Window-Join" class="headerlink" title="Tumbling Window Join"></a>Tumbling Window Join</h3>当执行翻滚窗口连接时，具有公共密钥和公共翻滚窗口的所有元素以成对组合的形式连接并传递给JoinFunction或FlatJoinFunction。因为它的行为类似于内连接，所以不会发出一个流的元素，这些元素在其翻滚窗口中没有来自另一个流的元素！<br><img data-src="https://ci.apache.org/projects/flink/flink-docs-master/fig/tumbling-window-join.svg" alt="images"><br>如图所示，我们定义了一个大小为2毫秒的翻滚窗口，这导致了窗体的窗口[0,1], [2,3], …。图像显示了每个窗口中所有元素的成对组合，这些元素将被传递给JoinFunction。请注意，在翻滚窗口中[6,7]没有任何东西被发射，因为绿色流中不存在与橙色元素⑥和⑦连接的元素。<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> org.apache.flink.api.java.functions.KeySelector;</span><br><span class="line"><span class="keyword">import</span> org.apache.flink.streaming.api.windowing.assigners.TumblingEventTimeWindows;</span><br><span class="line"><span class="keyword">import</span> org.apache.flink.streaming.api.windowing.time.Time;</span><br><span class="line"> </span><br><span class="line">...</span><br><span class="line"></span><br><span class="line">DataStream&lt;Integer&gt; orangeStream = ...</span><br><span class="line">DataStream&lt;Integer&gt; greenStream = ...</span><br><span class="line"></span><br><span class="line">orangeStream.join(greenStream)</span><br><span class="line">    .where(&lt;KeySelector&gt;)</span><br><span class="line">    .equalTo(&lt;KeySelector&gt;)</span><br><span class="line">    .window(TumblingEventTimeWindows.of(Time.seconds(<span class="number">2</span>)))</span><br><span class="line">    .apply (<span class="keyword">new</span> JoinFunction&lt;Integer, Integer, String&gt; ()&#123;</span><br><span class="line">        <span class="meta">@Override</span></span><br><span class="line">        <span class="function"><span class="keyword">public</span> String <span class="title">join</span><span class="params">(Integer first, Integer second)</span> </span>&#123;</span><br><span class="line">            <span class="keyword">return</span> first + <span class="string">","</span> + second;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;);</span><br></pre></td></tr></table></figure>
-<h3 id="Sliding-Window-Join"><a href="#Sliding-Window-Join" class="headerlink" title="Sliding Window Join"></a>Sliding Window Join</h3>执行滑动窗口连接时，具有公共键和公共滑动窗口的所有元素都是成对组合并传递给JoinFunction或FlatJoinFunction。不会释放当前滑动窗口中没有来自其他流的元素的一个流的元素！请注意，某些元素可能在一个滑动窗口中连接而在另一个滑动窗口中不连<img data-src="https://ci.apache.org/projects/flink/flink-docs-master/fig/sliding-window-join.svg" alt="images"><br>在这个例子中，我们使用大小为2毫秒的滑动窗口并将它们滑动一毫秒，从而产生滑动窗口[-1, 0],[0,1],[1,2],[2,3], …。x轴下方的连接元素是传递给JoinFunction每个滑动窗口的元素。在这里，您还可以看到橙色②如何与窗口中的绿色③ [2,3]连接，但未与窗口中的任何内容连接[1,2]。<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> org.apache.flink.api.java.functions.KeySelector;</span><br><span class="line"><span class="keyword">import</span> org.apache.flink.streaming.api.windowing.assigners.SlidingEventTimeWindows;</span><br><span class="line"><span class="keyword">import</span> org.apache.flink.streaming.api.windowing.time.Time;</span><br><span class="line"></span><br><span class="line">...</span><br><span class="line"></span><br><span class="line">DataStream&lt;Integer&gt; orangeStream = ...</span><br><span class="line">DataStream&lt;Integer&gt; greenStream = ...</span><br><span class="line"></span><br><span class="line">orangeStream.join(greenStream)</span><br><span class="line">    .where(&lt;KeySelector&gt;)</span><br><span class="line">    .equalTo(&lt;KeySelector&gt;)</span><br><span class="line">    .window(SlidingEventTimeWindows.of(Time.milliseconds(<span class="number">2</span>) <span class="comment">/* size */</span>, Time.milliseconds(<span class="number">1</span>) <span class="comment">/* slide */</span>))</span><br><span class="line">    .apply (<span class="keyword">new</span> JoinFunction&lt;Integer, Integer, String&gt; ()&#123;</span><br><span class="line">        <span class="meta">@Override</span></span><br><span class="line">        <span class="function"><span class="keyword">public</span> String <span class="title">join</span><span class="params">(Integer first, Integer second)</span> </span>&#123;</span><br><span class="line">            <span class="keyword">return</span> first + <span class="string">","</span> + second;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;);</span><br></pre></td></tr></table></figure>
-<h3 id="Session-Window-Join"><a href="#Session-Window-Join" class="headerlink" title="Session Window Join"></a>Session Window Join</h3>在执行会话窗口连接时，具有相同键的所有元素在“组合”满足会话条件时以成对组合方式连接并传递给JoinFunction或FlatJoinFunction。再次执行内连接，因此如果有一个会话窗口只包含来自一个流的元素，则不会发出任何输出！<img data-src="https://ci.apache.org/projects/flink/flink-docs-master/fig/session-window-join.svg" alt="images"><br>这里我们定义一个会话窗口连接，其中每个会话除以至少1ms的间隙。有三个会话，在前两个会话中，两个流的连接元素都传递给JoinFunction。在第三阶段，绿色流中没有元素，所以⑧和⑨没有连接！<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="keyword">import</span> org.apache.flink.api.java.functions.KeySelector;</span><br><span class="line"><span class="keyword">import</span> org.apache.flink.streaming.api.windowing.assigners.EventTimeSessionWindows;</span><br><span class="line"><span class="keyword">import</span> org.apache.flink.streaming.api.windowing.time.Time;</span><br><span class="line"> </span><br><span class="line">...</span><br><span class="line"></span><br><span class="line">DataStream&lt;Integer&gt; orangeStream = ...</span><br><span class="line">DataStream&lt;Integer&gt; greenStream = ...</span><br><span class="line"></span><br><span class="line">orangeStream.join(greenStream)</span><br><span class="line">    .where(&lt;KeySelector&gt;)</span><br><span class="line">    .equalTo(&lt;KeySelector&gt;)</span><br><span class="line">    .window(EventTimeSessionWindows.withGap(Time.milliseconds(<span class="number">1</span>)))</span><br><span class="line">    .apply (<span class="keyword">new</span> JoinFunction&lt;Integer, Integer, String&gt; ()&#123;</span><br><span class="line">        <span class="meta">@Override</span></span><br><span class="line">        <span class="function"><span class="keyword">public</span> String <span class="title">join</span><span class="params">(Integer first, Integer second)</span> </span>&#123;</span><br><span class="line">            <span class="keyword">return</span> first + <span class="string">","</span> + second;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;);</span><br></pre></td></tr></table></figure>
-<h3 id="Interval-Join"><a href="#Interval-Join" class="headerlink" title="Interval Join"></a>Interval Join</h3>区间连接使用公共密钥连接两个流的元素（我们现在将它们称为A和B），并且流B的元素具有时间戳，该时间戳位于流A中元素的时间戳的相对时间间隔中。这也可以更正式地表达为 b.timestamp ∈ [a.timestamp + lowerBound; a.timestamp + upperBound]或 a.timestamp + lowerBound &lt;= b.timestamp &lt;= a.timestamp + upperBound其中a和b是共享公共密钥的A和B的元素。只要下限总是小于或等于上限，下限和上限都可以是负数或上限。间隔连接当前仅执行内连接。当一对元素传递给ProcessJoinFunction它们时，它们将被赋予ProcessJoinFunction.Context两个元素的更大的时间戳（可以通过它访问）。注意间隔连接当前仅支持事件时间。<img data-src="https://ci.apache.org/projects/flink/flink-docs-master/fig/interval-join.svg" alt="images"><br>在上面的例子中，我们连接两个流’orange’和’green’，下限为-2毫秒，上限为+1毫秒。缺省情况下，这些界限是包容性的，但.lowerBoundExclusive()并.upperBoundExclusive可以应用到改变行为。再次使用更正式的表示法，这将转化为orangeElem.ts + lowerBound &lt;= greenElem.ts &lt;= orangeElem.ts + upperBound如三角形所示。<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> org.apache.flink.api.java.functions.KeySelector;</span><br><span class="line"><span class="keyword">import</span> org.apache.flink.streaming.api.functions.co.ProcessJoinFunction;</span><br><span class="line"><span class="keyword">import</span> org.apache.flink.streaming.api.windowing.time.Time;</span><br><span class="line"></span><br><span class="line">...</span><br><span class="line"></span><br><span class="line">DataStream&lt;Integer&gt; orangeStream = ...</span><br><span class="line">DataStream&lt;Integer&gt; greenStream = ...</span><br><span class="line"></span><br><span class="line">orangeStream</span><br><span class="line">    .keyBy(&lt;KeySelector&gt;)</span><br><span class="line">    .intervalJoin(greenStream.keyBy(&lt;KeySelector&gt;))</span><br><span class="line">    .between(Time.milliseconds(-<span class="number">2</span>), Time.milliseconds(<span class="number">1</span>))</span><br><span class="line">    .process (<span class="keyword">new</span> ProcessJoinFunction&lt;Integer, Integer, String()&#123;</span><br><span class="line"></span><br><span class="line">        <span class="meta">@Override</span></span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">processElement</span><span class="params">(Integer left, Integer right, Context ctx, Collector&lt;String&gt; out)</span> </span>&#123;</span><br><span class="line">            out.collect(first + <span class="string">","</span> + second);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;);</span><br></pre></td></tr></table></figure></li>
-</ul>
-
           <!--noindex-->
             <div class="post-button">
               <a class="btn" href="/2019/01/28/Flink%20Stream%20Windows%20Join/#more" rel="contents">
@@ -948,7 +894,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2019-01-29 16:50:41" itemprop="dateModified" datetime="2019-01-29T16:50:41+08:00">2019-01-29</time>
+                <time title="修改时间：2020-06-18 16:49:25" itemprop="dateModified" datetime="2020-06-18T16:49:25+08:00">2020-06-18</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -986,19 +932,7 @@
 
       
           <h2 id="批量迭代"><a href="#批量迭代" class="headerlink" title="批量迭代"></a>批量迭代</h2><ul>
-<li><p>要创建BulkIteration，请调用iterate(int)迭代的DataSet方法。这将返回一个IterativeDataSet，可以使用常规运算符进行转换。迭代调用的单个参数指定最大迭代次数。</p>
-</li>
-<li><p>要指定迭代的结束，请调用closeWith(DataSet)方法IterativeDataSet以指定应将哪个转换反馈到下一次迭代。closeWith(DataSet, DataSet)如果此DataSet为空，您可以选择指定终止条件，该条件评估第二个DataSet并终止迭代。如果未指定终止条件，则迭代将在给定的最大数量迭代后终止。</p>
-</li>
-</ul>
-<p>以下示例迭代地估计数量Pi。目标是计算落入单位圆的随机点数。在每次迭代中，挑选一个随机点。如果此点位于单位圆内，我们会增加计数。然后估计Pi作为结果计数除以迭代次数乘以4。</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">final</span> ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();</span><br><span class="line"></span><br><span class="line"><span class="comment">// Create initial IterativeDataSet</span></span><br><span class="line">IterativeDataSet&lt;Integer&gt; initial = env.fromElements(<span class="number">0</span>).iterate(<span class="number">10000</span>);</span><br><span class="line"></span><br><span class="line">DataSet&lt;Integer&gt; iteration = initial.map(<span class="keyword">new</span> MapFunction&lt;Integer, Integer&gt;() &#123;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> Integer <span class="title">map</span><span class="params">(Integer i)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">        <span class="keyword">double</span> x = Math.random();</span><br><span class="line">        <span class="keyword">double</span> y = Math.random();</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> i + ((x * x + y * y &lt; <span class="number">1</span>) ? <span class="number">1</span> : <span class="number">0</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;);</span><br><span class="line"></span><br><span class="line"><span class="comment">// Iteratively transform the IterativeDataSet</span></span><br><span class="line">DataSet&lt;Integer&gt; count = initial.closeWith(iteration);</span><br><span class="line"></span><br><span class="line">count.map(<span class="keyword">new</span> MapFunction&lt;Integer, Double&gt;() &#123;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> Double <span class="title">map</span><span class="params">(Integer count)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> count / (<span class="keyword">double</span>) <span class="number">10000</span> * <span class="number">4</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;).print();</span><br><span class="line"></span><br><span class="line">env.execute(<span class="string">"Iterative Pi Example"</span>);</span><br></pre></td></tr></table></figure>
-
-<h2 id="Delta迭代"><a href="#Delta迭代" class="headerlink" title="Delta迭代"></a>Delta迭代</h2><p>Delta迭代利用了某些算法在每次迭代中不会更改解决方案的每个数据点的事实。</p>
-<p>除了在每次迭代中反馈的部分解决方案（称为工作集）之外，delta迭代还在迭代中维护状态（称为解决方案集），可以通过增量更新。迭代计算的结果是最后一次迭代之后的状态。有关delta迭代的基本原理的概述，请参阅迭代简介。</p>
-<p>定义DeltaIteration类似于定义BulkIteration。对于delta迭代，两个数据集构成每次迭代的输入（工作集和解决方案集），并且在每次迭代中生成两个数据集作为结果（新工作集，解决方案集delta）。</p>
-<p>创建DeltaIteration调用iterateDelta(DataSet, int, int)（或iterateDelta(DataSet, int, int[])分别）。在初始解决方案集上调用此方法。参数是初始增量集，最大迭代次数和关键位置。返回的 DeltaIteration对象使您可以通过方法iteration.getWorkset()和方式访问表示工作集和解决方案集的DataSet iteration.getSolutionSet()。</p>
-<p>下面是delta迭代语法的示例</p>
+<li>要创建BulkIteration，请调用iterate(int)迭代的DataSet方法。这将返回一个IterativeDataSet，可以使用常规运算符进行转换。迭代调用的单个参数指定最大迭代次数。
           <!--noindex-->
             <div class="post-button">
               <a class="btn" href="/2019/01/25/Flink%20DataSet%20%E8%BF%AD%E4%BB%A3/#more" rel="contents">
@@ -1051,6 +985,13 @@
 
               <time title="创建时间：2019-01-25 15:03:27" itemprop="dateCreated datePublished" datetime="2019-01-25T15:03:27+08:00">2019-01-25</time>
             </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-06-18 16:49:34" itemprop="dateModified" datetime="2020-06-18T16:49:34+08:00">2020-06-18</time>
+              </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
                 <i class="far fa-folder"></i>
@@ -1087,18 +1028,7 @@
 
       
           <h3 id="Map"><a href="#Map" class="headerlink" title="Map"></a>Map</h3><ul>
-<li>Map转换在DataSet的每个元素上应用用户定义的map函数。它实现了一对一的映射，也就是说，函数必须返回一个元素。</li>
-</ul>
-<p>以下代码将Integer对的DataSet转换为Integers的DataSet：</p>
-<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">val</span> intPairs: <span class="type">DataSet</span>[(<span class="type">Int</span>, <span class="type">Int</span>)] = <span class="comment">// [...]</span></span><br><span class="line"><span class="keyword">val</span> intSums = intPairs.map &#123; pair =&gt; pair._1 + pair._2 &#125;</span><br></pre></td></tr></table></figure>
-<h3 id="FlatMap"><a href="#FlatMap" class="headerlink" title="FlatMap"></a>FlatMap</h3><ul>
-<li>FlatMap转换在DataSet的每个元素上应用用户定义的平面映射函数。map函数的这种变体可以为每个输入元素返回任意多个结果元素（包括none）。</li>
-</ul>
-<p>以下代码将文本行的DataSet转换为单词的DataSet：</p>
-<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">val</span> textLines: <span class="type">DataSet</span>[<span class="type">String</span>] = <span class="comment">// [...]</span></span><br><span class="line"><span class="keyword">val</span> words = textLines.flatMap &#123; _.split(<span class="string">" "</span>) &#125;</span><br></pre></td></tr></table></figure>
-<h3 id="MapPartition"><a href="#MapPartition" class="headerlink" title="MapPartition"></a>MapPartition</h3><ul>
-<li>MapPartition在单个函数调用中转换并行分区。map-partition函数将分区作为Iterable获取，并且可以生成任意数量的结果值。每个分区中的元素数量取决于并行度和先前的操作。</li>
-</ul>
+<li>Map转换在DataSet的每个元素上应用用户定义的map函数。它实现了一对一的映射，也就是说，函数必须返回一个元素。
           <!--noindex-->
             <div class="post-button">
               <a class="btn" href="/2019/01/25/Flink%20DataSet%20Transformations/#more" rel="contents">
@@ -1151,6 +1081,13 @@
 
               <time title="创建时间：2019-01-25 14:53:16" itemprop="dateCreated datePublished" datetime="2019-01-25T14:53:16+08:00">2019-01-25</time>
             </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-06-18 16:48:59" itemprop="dateModified" datetime="2020-06-18T16:48:59+08:00">2020-06-18</time>
+              </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
                 <i class="far fa-folder"></i>
@@ -1187,21 +1124,7 @@
 
       
           <h3 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h3><ul>
-<li><p>公司决定搞新版本deCDH，然后我就安装部署了CDH6.0.1，安装的路程就不说了，本以为安装好添加服务就可以用了，可是却遇到这个问题，我开始以为thrift jar包问题，问别人要了CDH6.0.0里面的jar包替换，后面又说什么配置问题，均未解决，后来找java大神看thrift jar的源码，然后发现问题是，我们请求的服务跟它自己要去调用的服务不一致。</p>
-</li>
-<li><p>原因找出来了，就是找不到解决方法，公司暂时也不用HBse，就暂时搁置了，直到今天，我这个服务器之前被安装过其他版本的CDH，导致系统的一直配置链接路径不对主要是/etc/alternatives/目录下面的一些链接是错的这个问题待会再说</p>
-<h4 id="报错"><a href="#报错" class="headerlink" title="报错"></a>报错</h4><p>hbase thrift端口报500</p>
-</li>
-</ul>
-<p>hue报HBase Browser Failed to authenticate to HBase Thrift Server, check authentication configurations</p>
-<p>HTTP ERROR 500</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"> at org.apache.thrift.transport.TIOStreamTransport.read(TIOStreamTransport.java:132)</span><br><span class="line">at org.apache.thrift.transport.TTransport.readAll(TTransport.java:86)</span><br><span class="line">at org.apache.thrift.protocol.TBinaryProtocol.readAll(TBinaryProtocol.java:429)</span><br><span class="line">at org.apache.thrift.protocol.TBinaryProtocol.readByte(TBinaryProtocol.java:285)</span><br><span class="line">at org.apache.thrift.protocol.TBinaryProtocol.readMessageBegin(TBinaryProtocol.java:230)</span><br><span class="line">at org.apache.thrift.TBaseProcessor.process(TBaseProcessor.java:27)</span><br><span class="line">at org.apache.thrift.server.TServlet.doPost(TServlet.java:83)</span><br><span class="line">at org.apache.hadoop.hbase.thrift.ThriftHttpServlet.doPost(ThriftHttpServlet.java:122)</span><br><span class="line">at javax.servlet.http.HttpServlet.service(HttpServlet.java:727)</span><br><span class="line">at javax.servlet.http.HttpServlet.service(HttpServlet.java:820)</span><br><span class="line">at org.mortbay.jetty.servlet.ServletHolder.handle(ServletHolder.java:511)</span><br><span class="line">at org.mortbay.jetty.servlet.ServletHandler.handle(ServletHandler.java:401)</span><br><span class="line">at org.mortbay.jetty.servlet.SessionHandler.handle(SessionHandler.java:182)</span><br><span class="line">at org.mortbay.jetty.handler.ContextHandler.handle(ContextHandler.java:767)</span><br><span class="line">at org.mortbay.jetty.handler.HandlerWrapper.handle(HandlerWrapper.java:152)</span><br><span class="line">at org.mortbay.jetty.Server.handle(Server.java:326)</span><br><span class="line">at org.mortbay.jetty.HttpConnection.handleRequest(HttpConnection.java:542)</span><br><span class="line">at org.mortbay.jetty.HttpConnection$RequestHandler.content(HttpConnection.java:945)</span><br><span class="line">at org.mortbay.jetty.HttpParser.parseNext(HttpParser.java:756)</span><br><span class="line">at org.mortbay.jetty.HttpParser.parseAvailable(HttpParser.java:218)</span><br><span class="line">at org.mortbay.jetty.HttpConnection.handle(HttpConnection.java:404)</span><br><span class="line">at org.mortbay.io.nio.SelectChannelEndPoint.run(SelectChannelEndPoint.java:410)</span><br><span class="line">at org.mortbay.thread.QueuedThreadPool$PoolThread.run(QueuedThreadPool.java:582)</span><br></pre></td></tr></table></figure>
-<h4 id="解决方法"><a href="#解决方法" class="headerlink" title="解决方法"></a>解决方法</h4><p>我们进入hue服务配置项-类别-高级-hue_safety_valve.ini 的 Hue 服务高级配置代码段（安全阀）<br>或者直接搜索后面这个配置项<br>在里面配置如下</p>
-<figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="section">[hbase]</span></span><br><span class="line"><span class="attr">hbase_conf_dir</span>=&#123;&#123;HBASE_CONF_DIR&#125;&#125;</span><br><span class="line"><span class="attr">thrift_transport</span>=buffered</span><br></pre></td></tr></table></figure>
-<blockquote>
-<p>注意：我们要先确定hbase配置里已经启用了thrift服务哦，还有hue也要依赖这个服务<br>同时确保 hbase-&gt;配置-&gt;HBase Thrift Server 中以下两项去掉勾中</p>
-</blockquote>
-<figure class="highlight css"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">启用 <span class="selector-tag">HBase</span> <span class="selector-tag">Thrift</span> 服务器压缩协议</span><br><span class="line"><span class="selector-tag">hbase</span><span class="selector-class">.regionserver</span><span class="selector-class">.thrift</span><span class="selector-class">.compact</span></span><br><span class="line"></span><br><span class="line">启用 <span class="selector-tag">HBase</span> <span class="selector-tag">Thrift</span> 服务器框架运输</span><br><span class="line"><span class="selector-tag">hbase</span><span class="selector-class">.regionserver</span><span class="selector-class">.thrift</span><span class="selector-class">.framed</span></span><br></pre></td></tr></table></figure>
+<li>公司决定搞新版本deCDH，然后我就安装部署了CDH6.0.1，安装的路程就不说了，本以为安装好添加服务就可以用了，可是却遇到这个问题，我开始以为thrift jar包问题，问别人要了CDH6.0.0里面的jar包替换，后面又说什么配置问题，均未解决，后来找java大神看thrift jar的源码，然后发现问题是，我们请求的服务跟它自己要去调用的服务不一致。
           <!--noindex-->
             <div class="post-button">
               <a class="btn" href="/2019/01/25/CDH6.0.1%20HUE%20%E8%AE%BF%E9%97%AEHBase%E6%8A%A5500%E9%94%99%E8%AF%AF%20%EF%BC%8C%E6%97%A0%E6%B3%95%E8%BF%9E%E6%8E%A5thrift/#more" rel="contents">
