@@ -189,6 +189,108 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/02/25/oracle%E9%80%9A%E8%BF%87ogg%E4%BC%A0%E9%80%92%E6%95%B0%E6%8D%AE%E5%88%B0kafka/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/cat.png">
+      <meta itemprop="name" content="king">
+      <meta itemprop="description" content="诸天气荡荡,我道日兴隆">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="诗与远方">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/02/25/oracle%E9%80%9A%E8%BF%87ogg%E4%BC%A0%E9%80%92%E6%95%B0%E6%8D%AE%E5%88%B0kafka/" class="post-title-link" itemprop="url">oracle通过ogg传递数据到kafka</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2019-02-25 13:55:39 / 修改时间：14:01:35" itemprop="dateCreated datePublished" datetime="2019-02-25T13:55:39+08:00">2019-02-25</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/OGG/" itemprop="url" rel="index"><span itemprop="name">OGG</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>5.4k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>5 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="GoldenGate介绍"><a href="#GoldenGate介绍" class="headerlink" title="GoldenGate介绍"></a>GoldenGate介绍</h2><p>GoldenGate软件是一种基于日志的结构化数据复制软件。GoldenGate 能够实现大量交易数据的实时捕捉、变换和投递，实现源数据库与目标数据库的数据同步，保持亚秒级的数据延迟。</p>
+<p>GoldenGate能够支持多种拓扑结构，包括一对一，一对多，多对一，层叠和双向复制等等。</p>
+<h3 id="GoldenGate基本架构"><a href="#GoldenGate基本架构" class="headerlink" title="GoldenGate基本架构"></a>GoldenGate基本架构</h3><h4 id="Oracle-GoldenGate主要由如下组件组成"><a href="#Oracle-GoldenGate主要由如下组件组成" class="headerlink" title="Oracle GoldenGate主要由如下组件组成"></a>Oracle GoldenGate主要由如下组件组成</h4><ul>
+<li>Extract</li>
+<li>Data pump</li>
+<li>Trails</li>
+<li>Collector</li>
+<li>Replicat</li>
+<li>Manager<h4 id="Oracle-GoldenGate-数据复制过程如下："><a href="#Oracle-GoldenGate-数据复制过程如下：" class="headerlink" title="Oracle GoldenGate 数据复制过程如下："></a>Oracle GoldenGate 数据复制过程如下：</h4></li>
+</ul>
+<p>利用抽取进程(Extract Process)在源端数据库中读取Online Redo Log或者Archive Log，然后进行解析，只提取其中数据的变化信息，比如DML操作——增、删、改操作，将抽取的信息转换为GoldenGate自定义的中间格式存放在队列文件(trail file)中。再利用传输进程将队列文件(trail file)通过TCP/IP传送到目标系统。</p>
+<p>目标端有一个进程叫Server Collector，这个进程接受了从源端传输过来的数据变化信息，把信息缓存到GoldenGate 队列文件(trail file)当中，等待目标端的复制进程读取数据。</p>
+<p>GoldenGate 复制进程(replicat process)从队列文件(trail file)中读取数据变化信息，并创建对应的SQL语句，通过数据库的本地接口执行，提交到目标端数据库，提交成功后更新自己的检查点，记录已经完成复制的位置，数据的复制过程最终完成。</p>
+<h4 id="①-Manager"><a href="#①-Manager" class="headerlink" title="① Manager"></a>① Manager</h4>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2019/02/25/oracle%E9%80%9A%E8%BF%87ogg%E4%BC%A0%E9%80%92%E6%95%B0%E6%8D%AE%E5%88%B0kafka/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/02/02/hive%E5%86%85%E9%83%A8%E8%A1%A8%E4%B8%8E%E5%A4%96%E9%83%A8%E8%A1%A8%E5%8C%BA%E5%88%AB/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -1122,101 +1224,6 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/01/24/CentOS7.5,CDH6%E5%AE%89%E8%A3%85%E9%83%A8%E7%BD%B2/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/cat.png">
-      <meta itemprop="name" content="king">
-      <meta itemprop="description" content="诸天气荡荡,我道日兴隆">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="诗与远方">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/01/24/CentOS7.5,CDH6%E5%AE%89%E8%A3%85%E9%83%A8%E7%BD%B2/" class="post-title-link" itemprop="url">CentOS7.5+CDH6安装部署</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2019-01-24 23:43:31" itemprop="dateCreated datePublished" datetime="2019-01-24T23:43:31+08:00">2019-01-24</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2019-01-25 00:00:22" itemprop="dateModified" datetime="2019-01-25T00:00:22+08:00">2019-01-25</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/CDH/" itemprop="url" rel="index"><span itemprop="name">CDH</span></a>
-                </span>
-            </span>
-
-          <br>
-            <span class="post-meta-item" title="本文字数">
-              <span class="post-meta-item-icon">
-                <i class="far fa-file-word"></i>
-              </span>
-                <span class="post-meta-item-text">本文字数：</span>
-              <span>2.1k</span>
-            </span>
-            <span class="post-meta-item" title="阅读时长">
-              <span class="post-meta-item-icon">
-                <i class="far fa-clock"></i>
-              </span>
-                <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>2 分钟</span>
-            </span>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h2 id="集群规划"><a href="#集群规划" class="headerlink" title="集群规划"></a>集群规划</h2><h4 id="1-CDH简介"><a href="#1-CDH简介" class="headerlink" title="1.CDH简介　"></a>1.CDH简介　</h4><p>Cloudera’s Distribution, including Apache Hadoop<br>基于Web的用户界面,支持大多数Hadoop组件，包括HDFS、MapReduce、Hive、Pig、 Hbase、Zookeeper、Sqoop,简化了大数据平台的安装、使用难度。</p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2019/01/24/CentOS7.5,CDH6%E5%AE%89%E8%A3%85%E9%83%A8%E7%BD%B2/#more" rel="contents">
-                阅读全文 &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
@@ -1287,7 +1294,7 @@
   <nav class="site-state">
       <div class="site-state-item site-state-posts">
           <a href="/archives">
-          <span class="site-state-item-count">21</span>
+          <span class="site-state-item-count">22</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
@@ -1353,12 +1360,12 @@
     <span class="post-meta-item-icon">
       <i class="fa fa-chart-area"></i>
     </span>
-    <span title="站点总字数">33k</span>
+    <span title="站点总字数">36k</span>
     <span class="post-meta-divider">|</span>
     <span class="post-meta-item-icon">
       <i class="fa fa-coffee"></i>
     </span>
-    <span title="站点阅读时长">30 分钟</span>
+    <span title="站点阅读时长">33 分钟</span>
 </div>
   <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> 强力驱动
   </div>

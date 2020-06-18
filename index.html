@@ -189,6 +189,114 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/06/18/Flink%20Stream%20Time%20And%20Watermark/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/cat.png">
+      <meta itemprop="name" content="king">
+      <meta itemprop="description" content="诸天气荡荡,我道日兴隆">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="诗与远方">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2020/06/18/Flink%20Stream%20Time%20And%20Watermark/" class="post-title-link" itemprop="url">Flink Stream Time And Watermark</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2020-06-18 16:42:37 / 修改时间：16:42:38" itemprop="dateCreated datePublished" datetime="2020-06-18T16:42:37+08:00">2020-06-18</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/flink/" itemprop="url" rel="index"><span itemprop="name">flink</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>3k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>3 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h3 id="时间语义"><a href="#时间语义" class="headerlink" title="时间语义"></a>时间语义</h3><h4 id="在-Flink-中-Time-可以分为三种-Event-Time-Processing-Time-Ingestion-Time"><a href="#在-Flink-中-Time-可以分为三种-Event-Time-Processing-Time-Ingestion-Time" class="headerlink" title="在 Flink 中 Time 可以分为三种 Event Time , Processing Time ,Ingestion Time"></a>在 Flink 中 Time 可以分为三种 Event Time , Processing Time ,Ingestion Time</h4><ul>
+<li><p>Processing Time</p>
+</li>
+<li><p><em>处理时间（Processing time）:*</em> 对流进行操作时，所在服务器的系统时间;基于处理时间的窗口操作是以机器时间来进行触发的，由于数据到达窗口的速率不同，所以窗口算子中使用处理时间会导致不确定的结果。在使用处理时间时，无需等待水位线的到来后进行触发窗口，所以可以提供较低的延迟。</p>
+</li>
+<li><p>Event Time</p>
+</li>
+<li><p><em>事件时间（Event Time）:*</em> 一个事件被创建的时间，它通常被描述为事件的时间戳，例如由生产者传感器或者生产服务追加，Flink通过时间戳分配器来访问事件时间戳;所以，基于事件时间的计算操作，其结果是具有确定性的，无论数据流的处理速度如何、事件到达算子的顺序是否会乱，最终生成的结果都是一样的。</p>
+</li>
+<li><p>Ingestion Time</p>
+</li>
+<li><p><em>摄取时间（Ingestion Time）：*</em> 事件进入Flink的数据流在数据源操作的时间。Ingestion Time从概念上讲介于Event Time和Processing Time之间。<br><img data-src="https://ci.apache.org/projects/flink/flink-docs-release-1.10/fig/times_clocks.svg" alt="images"></p>
+<h4 id="DataStream中的应用"><a href="#DataStream中的应用" class="headerlink" title="DataStream中的应用"></a>DataStream中的应用</h4></li>
+</ul>
+<h6 id="设置时间特性-Setting-a-Time-Characteristic"><a href="#设置时间特性-Setting-a-Time-Characteristic" class="headerlink" title="设置时间特性(Setting a Time Characteristic)"></a>设置时间特性(Setting a Time Characteristic)</h6><p>Flink DataStream程序的第一部分通常设置基准时间特征。该设置定义了数据流源的行为方式（例如，是否分配时间戳），以及诸如的窗口操作应使用什么时间概念KeyedStream.timeWindow(Time.seconds(30))。</p>
+<p>以下示例显示了一个Flink程序，该程序在每小时的时间窗口中汇总事件。窗口的行为与时间特征相适应。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">final</span> StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();</span><br><span class="line"></span><br><span class="line">env.setStreamTimeCharacteristic(TimeCharacteristic.ProcessingTime);</span><br><span class="line"></span><br><span class="line"><span class="comment">// alternatively:</span></span><br><span class="line"><span class="comment">// env.setStreamTimeCharacteristic(TimeCharacteristic.IngestionTime);</span></span><br><span class="line"><span class="comment">// env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);</span></span><br><span class="line"></span><br><span class="line">DataStream&lt;MyEvent&gt; stream = env.addSource(<span class="keyword">new</span> FlinkKafkaConsumer09&lt;MyEvent&gt;(topic, schema, props));</span><br><span class="line"></span><br><span class="line">stream</span><br><span class="line">    .keyBy( (event) -&gt; event.getUser() )</span><br><span class="line">    .timeWindow(Time.hours(<span class="number">1</span>))</span><br><span class="line">    .reduce( (a, b) -&gt; a.add(b) )</span><br><span class="line">    .addSink(...);</span><br></pre></td></tr></table></figure>
+<p>设置时间的源码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@PublicEvolving</span></span><br><span class="line">   <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">setStreamTimeCharacteristic</span><span class="params">(TimeCharacteristic characteristic)</span> </span>&#123;</span><br><span class="line">       <span class="keyword">this</span>.timeCharacteristic = (TimeCharacteristic)Preconditions.checkNotNull(characteristic);</span><br><span class="line">       <span class="keyword">if</span> (characteristic == TimeCharacteristic.ProcessingTime) &#123;</span><br><span class="line">           <span class="keyword">this</span>.getConfig().setAutoWatermarkInterval(<span class="number">0L</span>);</span><br><span class="line">       &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">           <span class="keyword">this</span>.getConfig().setAutoWatermarkInterval(<span class="number">200L</span>);</span><br><span class="line">       &#125;</span><br><span class="line"></span><br><span class="line">   &#125;</span><br></pre></td></tr></table></figure>
+<h3 id="WaterMarks"><a href="#WaterMarks" class="headerlink" title="WaterMarks"></a>WaterMarks</h3>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2020/06/18/Flink%20Stream%20Time%20And%20Watermark/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/06/17/flink%20aysnc%20I:O/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -1195,108 +1303,6 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/02/25/oracle%E9%80%9A%E8%BF%87ogg%E4%BC%A0%E9%80%92%E6%95%B0%E6%8D%AE%E5%88%B0kafka/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/cat.png">
-      <meta itemprop="name" content="king">
-      <meta itemprop="description" content="诸天气荡荡,我道日兴隆">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="诗与远方">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/02/25/oracle%E9%80%9A%E8%BF%87ogg%E4%BC%A0%E9%80%92%E6%95%B0%E6%8D%AE%E5%88%B0kafka/" class="post-title-link" itemprop="url">oracle通过ogg传递数据到kafka</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-              
-
-              <time title="创建时间：2019-02-25 13:55:39 / 修改时间：14:01:35" itemprop="dateCreated datePublished" datetime="2019-02-25T13:55:39+08:00">2019-02-25</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/OGG/" itemprop="url" rel="index"><span itemprop="name">OGG</span></a>
-                </span>
-            </span>
-
-          <br>
-            <span class="post-meta-item" title="本文字数">
-              <span class="post-meta-item-icon">
-                <i class="far fa-file-word"></i>
-              </span>
-                <span class="post-meta-item-text">本文字数：</span>
-              <span>5.4k</span>
-            </span>
-            <span class="post-meta-item" title="阅读时长">
-              <span class="post-meta-item-icon">
-                <i class="far fa-clock"></i>
-              </span>
-                <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>5 分钟</span>
-            </span>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h2 id="GoldenGate介绍"><a href="#GoldenGate介绍" class="headerlink" title="GoldenGate介绍"></a>GoldenGate介绍</h2><p>GoldenGate软件是一种基于日志的结构化数据复制软件。GoldenGate 能够实现大量交易数据的实时捕捉、变换和投递，实现源数据库与目标数据库的数据同步，保持亚秒级的数据延迟。</p>
-<p>GoldenGate能够支持多种拓扑结构，包括一对一，一对多，多对一，层叠和双向复制等等。</p>
-<h3 id="GoldenGate基本架构"><a href="#GoldenGate基本架构" class="headerlink" title="GoldenGate基本架构"></a>GoldenGate基本架构</h3><h4 id="Oracle-GoldenGate主要由如下组件组成"><a href="#Oracle-GoldenGate主要由如下组件组成" class="headerlink" title="Oracle GoldenGate主要由如下组件组成"></a>Oracle GoldenGate主要由如下组件组成</h4><ul>
-<li>Extract</li>
-<li>Data pump</li>
-<li>Trails</li>
-<li>Collector</li>
-<li>Replicat</li>
-<li>Manager<h4 id="Oracle-GoldenGate-数据复制过程如下："><a href="#Oracle-GoldenGate-数据复制过程如下：" class="headerlink" title="Oracle GoldenGate 数据复制过程如下："></a>Oracle GoldenGate 数据复制过程如下：</h4></li>
-</ul>
-<p>利用抽取进程(Extract Process)在源端数据库中读取Online Redo Log或者Archive Log，然后进行解析，只提取其中数据的变化信息，比如DML操作——增、删、改操作，将抽取的信息转换为GoldenGate自定义的中间格式存放在队列文件(trail file)中。再利用传输进程将队列文件(trail file)通过TCP/IP传送到目标系统。</p>
-<p>目标端有一个进程叫Server Collector，这个进程接受了从源端传输过来的数据变化信息，把信息缓存到GoldenGate 队列文件(trail file)当中，等待目标端的复制进程读取数据。</p>
-<p>GoldenGate 复制进程(replicat process)从队列文件(trail file)中读取数据变化信息，并创建对应的SQL语句，通过数据库的本地接口执行，提交到目标端数据库，提交成功后更新自己的检查点，记录已经完成复制的位置，数据的复制过程最终完成。</p>
-<h4 id="①-Manager"><a href="#①-Manager" class="headerlink" title="① Manager"></a>① Manager</h4>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2019/02/25/oracle%E9%80%9A%E8%BF%87ogg%E4%BC%A0%E9%80%92%E6%95%B0%E6%8D%AE%E5%88%B0kafka/#more" rel="contents">
-                阅读全文 &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
@@ -1367,7 +1373,7 @@
   <nav class="site-state">
       <div class="site-state-item site-state-posts">
           <a href="/archives">
-          <span class="site-state-item-count">21</span>
+          <span class="site-state-item-count">22</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
@@ -1433,12 +1439,12 @@
     <span class="post-meta-item-icon">
       <i class="fa fa-chart-area"></i>
     </span>
-    <span title="站点总字数">33k</span>
+    <span title="站点总字数">36k</span>
     <span class="post-meta-divider">|</span>
     <span class="post-meta-item-icon">
       <i class="fa fa-coffee"></i>
     </span>
-    <span title="站点阅读时长">30 分钟</span>
+    <span title="站点阅读时长">33 分钟</span>
 </div>
   <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> 强力驱动
   </div>
